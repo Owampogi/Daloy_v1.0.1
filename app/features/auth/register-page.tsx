@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { supabase } from "~/services/supabase-client";
-import { Eye, EyeOff, Loader2, CheckCircle, Check, ArrowLeft } from "lucide-react";
+import { Eye, EyeOff, Loader2, Check, ArrowLeft } from "lucide-react";
 
 const plans = [
   {
@@ -38,6 +38,7 @@ export function loader() {
 }
 
 function RegisterPage() {
+  const navigate = useNavigate();
   const [step, setStep] = useState<1 | 2>(1);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -47,7 +48,6 @@ function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
 
   const handleStep1 = (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,7 +72,6 @@ function RegisterPage() {
           full_name: fullName,
           selected_plan: selectedPlan,
         },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 
@@ -82,10 +81,9 @@ function RegisterPage() {
       return;
     }
 
-    // Store selected plan
-    sessionStorage.setItem("selected_plan", selectedPlan);
-    setSuccess(true);
     setLoading(false);
+    // ✅ Navigate to OTP page, pass email via state
+    navigate("/verify-otp", { state: { email, plan: selectedPlan } });
   };
 
   const handleGoogleLogin = async () => {
@@ -101,36 +99,6 @@ function RegisterPage() {
       setGoogleLoading(false);
     }
   };
-
-  // Success state
-  if (success) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-secondary/40 px-4">
-        <div className="w-full max-w-md rounded-2xl border border-border bg-background p-8 text-center shadow-sm">
-          <CheckCircle className="mx-auto h-12 w-12 text-emerald-500" />
-          <h2 className="mt-4 text-lg font-semibold text-foreground">Check your email!</h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            We sent a confirmation link to{" "}
-            <span className="font-medium text-foreground">{email}</span>.
-            Please verify your email to continue.
-          </p>
-          <div className="mt-4 rounded-xl border border-border bg-secondary/40 px-4 py-3">
-            <p className="text-xs text-muted-foreground">
-              Selected plan:{" "}
-              <span className="font-semibold capitalize text-foreground">{selectedPlan}</span>
-              {" "}· 14-day free trial
-            </p>
-          </div>
-          <Link
-            to="/login"
-            className="mt-6 inline-flex items-center justify-center rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
-          >
-            Go to Login
-          </Link>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-secondary/40 px-4 py-12">
@@ -193,7 +161,6 @@ function RegisterPage() {
                   {error}
                 </div>
               )}
-
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-foreground">Full Name</label>
                 <input
@@ -205,7 +172,6 @@ function RegisterPage() {
                   className="w-full rounded-xl border border-border bg-secondary/40 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
               </div>
-
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-foreground">Email</label>
                 <input
@@ -217,7 +183,6 @@ function RegisterPage() {
                   className="w-full rounded-xl border border-border bg-secondary/40 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
               </div>
-
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-foreground">Password</label>
                 <div className="relative">
@@ -239,7 +204,6 @@ function RegisterPage() {
                   </button>
                 </div>
               </div>
-
               <button
                 type="submit"
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
@@ -250,9 +214,7 @@ function RegisterPage() {
 
             <p className="mt-6 text-center text-sm text-muted-foreground">
               Already have an account?{" "}
-              <Link to="/login" className="font-medium text-accent hover:underline">
-                Sign in
-              </Link>
+              <Link to="/login" className="font-medium text-accent hover:underline">Sign in</Link>
             </p>
           </div>
         )}
@@ -284,14 +246,10 @@ function RegisterPage() {
                   }`}
                 >
                   {plan.featured && (
-                    <span
-                      className="absolute -top-2.5 left-4 rounded-full px-2.5 py-0.5 text-xs font-semibold text-primary-foreground"
-                      style={{ background: "var(--gradient-brand)" }}
-                    >
+                    <span className="absolute -top-2.5 left-4 rounded-full bg-primary px-2.5 py-0.5 text-xs font-semibold text-primary-foreground">
                       Most popular
                     </span>
                   )}
-
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
@@ -311,7 +269,6 @@ function RegisterPage() {
                       <span className="text-xs text-muted-foreground">{plan.period}</span>
                     </div>
                   </div>
-
                   {selectedPlan === plan.id && (
                     <div className="absolute right-4 top-4 flex h-5 w-5 items-center justify-center rounded-full bg-accent">
                       <Check className="h-3 w-3 text-white" />
@@ -333,9 +290,7 @@ function RegisterPage() {
               className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
             >
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-              {selectedPlan === "business"
-                ? "Talk to sales"
-                : "Create account & start free trial"}
+              {selectedPlan === "business" ? "Talk to sales" : "Create account & start free trial"}
             </button>
 
             <p className="mt-3 text-center text-xs text-muted-foreground">
