@@ -18,9 +18,9 @@ export default function Home() {
     <main>
       <Navbar />
       <HeroSection />
-      <ProblemsSection />
-      <FlowSection />
       <FeaturesSection />
+      <FlowSection />
+      <ProblemsSection />
       <PricingSection />
       <FaqSection />
       {/* <StatsSection /> */}
