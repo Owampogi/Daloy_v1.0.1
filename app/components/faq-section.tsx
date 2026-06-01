@@ -42,7 +42,7 @@ export function FaqSection() {
   const toggle = (i: number) => setOpenIndex(openIndex === i ? null : i);
 
   return (
-    <section className="relative overflow-hidden bg-background py-24 px-6">
+    <section id="faq" className="relative overflow-hidden bg-background py-24 px-6">
       {/* Background decoration */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div
