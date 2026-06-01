@@ -47,11 +47,11 @@ export function FaqSection() {
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div
           className="absolute -left-40 top-20 h-[500px] w-[500px] rounded-full opacity-[0.04]"
-          style={{ background: "var(--color-accent, #10b981)" , filter: "blur(80px)" }}
+          style={{ background: "var(--color-accent, #1f6fe5)", filter: "blur(80px)" }}
         />
         <div
           className="absolute -right-40 bottom-20 h-[400px] w-[400px] rounded-full opacity-[0.04]"
-          style={{ background: "var(--color-primary, #09090b)", filter: "blur(80px)" }}
+          style={{ background: "var(--color-primary, #041633)", filter: "blur(80px)" }}
         />
       </div>
 
@@ -135,7 +135,7 @@ export function FaqSection() {
           </p>
           <a
             href="mailto:support@daloy.app"
-            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+            className="btn-primary mt-4"
           >
             Talk to us
           </a>

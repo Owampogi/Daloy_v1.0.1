@@ -1,11 +1,12 @@
 import { Link } from "react-router";
+import daloyMark from "../assets/daloy-mark.png";
 
 export function Navbar() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/80 backdrop-blur-lg">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
         <Link to="/" className="flex items-center gap-2">
-          <span className="text-lg font-bold tracking-tight text-foreground">DALOY</span>
+          <img src={daloyMark} alt="DALOY" className="h-11 w-auto sm:h-12" />
         </Link>
         <nav className="hidden items-center gap-8 md:flex">
           <a href="#features" className="text-sm text-muted-foreground transition-colors hover:text-foreground">Features</a>
@@ -22,7 +23,7 @@ export function Navbar() {
           </Link>
           <Link
             to="/login"
-            className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary-hover hover:shadow-md"
+            className="btn-primary h-9 px-4 text-sm shadow-sm hover:shadow-md"
           >
             Get started
           </Link>

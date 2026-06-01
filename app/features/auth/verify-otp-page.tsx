@@ -111,7 +111,7 @@ function VerifyOtpPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-secondary/40 px-4">
         <div className="w-full max-w-md rounded-2xl border border-border bg-background p-8 text-center shadow-sm">
-          <CheckCircle className="mx-auto h-12 w-12 text-emerald-500" />
+          <CheckCircle className="mx-auto h-12 w-12 text-accent" />
           <h2 className="mt-4 text-lg font-semibold text-foreground">Email verified!</h2>
           <p className="mt-2 text-sm text-muted-foreground">
             Redirecting you to your dashboard...
@@ -180,7 +180,7 @@ function VerifyOtpPage() {
           <button
             onClick={handleVerify}
             disabled={loading || otp.join("").length !== 6}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="btn-primary w-full"
           >
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
             Verify & continue

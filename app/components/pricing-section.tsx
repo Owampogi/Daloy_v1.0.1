@@ -51,14 +51,14 @@ export function PricingSection() {
   };
 
   return (
-    <section id="pricing" className="border-t border-border">
+    <section id="pricing" className="relative">
       <div className="mx-auto max-w-7xl px-6 py-24">
         <div className="mx-auto max-w-2xl text-center">
-          <span className="text-sm font-semibold uppercase tracking-wider text-accent">Pricing</span>
-          <h2 className="mt-3 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+          <span className="text-sm font-semibold uppercase tracking-wider text-[#6DDFF5]">Pricing</span>
+          <h2 className="mt-3 text-4xl font-bold tracking-tight text-white sm:text-5xl">
             Plans that grow with you.
           </h2>
-          <p className="mt-4 text-lg text-muted-foreground">
+          <p className="mt-4 text-lg text-white/75">
             Transparent pricing in pesos. No surprises, no annual lock-in.
           </p>
         </div>
@@ -70,10 +70,10 @@ export function PricingSection() {
               onClick={() => setSelectedPlan(t.plan)}
               className={`relative flex flex-col rounded-2xl border p-8 transition-all cursor-pointer ${
                 selectedPlan === t.plan
-                  ? "border-accent ring-2 ring-accent/30"
-                  : t.featured
-                  ? "border-accent/50 bg-card"
-                  : "border-border bg-card hover:border-foreground/10"
+                ? "border-[#6DDFF5] ring-2 ring-[#6DDFF5]/30"
+                : t.featured
+                  ? "border-white/20 bg-white/95"
+                  : "border-white/10 bg-white/95 hover:border-[#6DDFF5]/40"
               }`}
               style={
                 t.featured && selectedPlan !== t.plan
@@ -116,10 +116,8 @@ export function PricingSection() {
                   e.stopPropagation();
                   handleSelect(t.plan, t.cta);
                 }}
-                className={`mt-8 inline-flex h-11 items-center justify-center rounded-lg px-4 text-sm font-semibold transition-all ${
-                  t.featured || selectedPlan === t.plan
-                    ? "bg-primary text-primary-foreground hover:bg-primary-hover"
-                    : "border border-border bg-secondary text-foreground hover:bg-muted"
+                className={`mt-8 h-11 px-4 text-sm ${
+                  t.featured || selectedPlan === t.plan ? "btn-primary" : "btn-secondary"
                 }`}
               >
                 {t.cta}

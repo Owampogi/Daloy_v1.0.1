@@ -11,21 +11,21 @@ const features = [
 
 export function FeaturesSection() {
   return (
-    <section id="features" className="border-t border-border">
+    <section id="features" className="relative">
       <div className="mx-auto max-w-7xl px-6 py-24">
         <div className="grid gap-12 lg:grid-cols-[1fr_2fr] lg:items-start">
           <div>
-            <span className="text-sm font-semibold uppercase tracking-wider text-accent">Features</span>
-            <h2 className="mt-3 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-              Not a CRM. An intelligent assistant.
+            <span className="text-sm font-semibold uppercase tracking-wider text-[#6DDFF5]">Features</span>
+            <h2 className="mt-3 text-4xl font-bold tracking-tight text-white sm:text-5xl">
+              An intelligent lead-flow platform.
             </h2>
-            <p className="mt-4 text-lg text-muted-foreground">
+            <p className="mt-4 text-lg text-white/75">
               DALOY does the busywork so your team can focus on what matters — closing more business.
             </p>
           </div>
-          <div className="grid gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-2">
+          <div className="grid gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10 sm:grid-cols-2">
             {features.map((f) => (
-              <div key={f.title} className="group bg-card p-6 transition-colors hover:bg-secondary/60">
+              <div key={f.title} className="group bg-white/95 p-6 transition-colors hover:bg-white">
                 <f.icon className="h-6 w-6 text-accent" />
                 <h3 className="mt-4 text-base font-semibold text-foreground">{f.title}</h3>
                 <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{f.desc}</p>

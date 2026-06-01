@@ -82,8 +82,8 @@ const PLAN_CONFIG = {
 };
 
 const statusStyles: Record<string, string> = {
-  New: "bg-emerald-50 text-emerald-700",
-  Qualified: "bg-blue-50 text-blue-700",
+  New: "bg-accent-soft text-accent",
+  Qualified: "bg-accent/10 text-accent",
   "Follow-up": "bg-amber-50 text-amber-700",
   Cold: "bg-gray-100 text-gray-500",
 };
@@ -345,10 +345,10 @@ function DashboardPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-secondary/40 font-sans text-foreground antialiased">
+    <div className="flex min-h-screen bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] font-sans text-foreground antialiased">
 
       {/* ── Sidebar ── */}
-      <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-background lg:flex">
+      <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-background/95 lg:flex">
         <div className="flex h-16 items-center gap-2 border-b border-border px-6">
           <span className="text-lg font-bold tracking-tight">DALOY</span>
         </div>
@@ -387,7 +387,7 @@ function DashboardPage() {
             {isStarter && (
               <Link
                 to="/pricing"
-                className="rounded-md bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground hover:opacity-90"
+                className="btn-primary h-8 px-2.5 text-xs"
               >
                 Upgrade
               </Link>
@@ -451,7 +451,7 @@ function DashboardPage() {
       <div className="flex flex-1 flex-col">
 
         {/* Topbar */}
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-border bg-background/80 px-6 backdrop-blur-lg">
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-border/70 bg-background/85 px-6 backdrop-blur-xl">
           <div>
             <p className="text-base font-semibold text-foreground">Command Center</p>
             <p className="text-xs text-muted-foreground">
@@ -487,18 +487,18 @@ function DashboardPage() {
 
           {/* Upgrade banner */}
           {isStarter && (
-            <div className="mb-6 flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-5 py-3">
+            <div className="mb-6 flex items-center justify-between rounded-2xl border border-[#6DDFF5]/25 bg-[linear-gradient(135deg,#041633_0%,#0B2857_55%,#1F6FE5_100%)] px-5 py-4 text-white shadow-lg" style={{ boxShadow: "var(--shadow-lg)" }}>
               <div className="flex items-center gap-3">
-                <Zap className="h-4 w-4 text-amber-600" />
-                <p className="text-sm font-medium text-amber-800">
-                  You're on Starter — unlock Analytics, Automations & more channels with Growth.
+                <Zap className="h-4 w-4 text-[#6DDFF5]" />
+                <p className="text-sm font-medium text-white/90">
+                  You're on Starter - unlock Analytics, Automations, and more channels with Growth.
                 </p>
               </div>
               <Link
                 to="/pricing"
-                className="shrink-0 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700"
+                className="btn-secondary shrink-0 h-9 border-white/30 bg-white/10 px-3 text-xs text-white hover:bg-white/15"
               >
-                Upgrade →
+                Upgrade
               </Link>
             </div>
           )}
@@ -525,7 +525,7 @@ function DashboardPage() {
                 ) : m.progress === null && m.sub ? (
                   <p className="mt-1 text-xs text-muted-foreground">{m.sub}</p>
                 ) : (
-                  <p className={`mt-1 text-xs font-medium ${m.up ? "text-emerald-600" : "text-amber-600"}`}>
+                  <p className={`mt-1 text-xs font-medium ${m.up ? "text-accent" : "text-amber-600"}`}>
                     {m.delta}
                   </p>
                 )}
@@ -595,7 +595,7 @@ function DashboardPage() {
                   <Lock className="h-8 w-8 text-muted-foreground" />
                   <p className="mt-2 text-sm font-semibold text-foreground">Analytics is a Growth feature</p>
                   <p className="mt-1 text-xs text-muted-foreground">Upgrade to unlock real-time insights</p>
-                  <Link to="/pricing" className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90">
+                  <Link to="/pricing" className="btn-primary mt-4 h-9 px-3 text-xs">
                     Upgrade to Growth <ChevronRight className="h-3.5 w-3.5" />
                   </Link>
                 </div>
@@ -606,10 +606,10 @@ function DashboardPage() {
           {/* Automations */}
           {config.automationsLocked ? (
             <div className="mt-6 relative rounded-xl border border-dashed border-border bg-background overflow-hidden px-5 py-6 text-center" style={{ boxShadow: "var(--shadow-sm)" }}>
-              <Zap className="mx-auto h-6 w-6 text-muted-foreground/50" />
+              <Zap className="mx-auto h-6 w-6 text-accent/70" />
               <p className="mt-2 text-sm font-semibold text-foreground">Smart Pipelines & Automations</p>
               <p className="mt-1 text-xs text-muted-foreground">Auto-follow-ups, triggers, and smart pipelines — Growth plan only.</p>
-              <Link to="/pricing" className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90">
+              <Link to="/pricing" className="btn-primary mt-3 h-9 px-3 text-xs">
                 Unlock Automations <ChevronRight className="h-3.5 w-3.5" />
               </Link>
             </div>
@@ -672,7 +672,7 @@ function DashboardPage() {
               <Link
                 key={a.label}
                 to={a.to}
-                className="flex items-center gap-3 rounded-xl border border-border bg-background px-4 py-3 text-sm font-medium text-foreground transition-all hover:-translate-y-0.5 hover:border-accent/40"
+                className="btn-surface h-auto min-h-[3.25rem] items-center justify-start px-4 py-3 text-sm hover:-translate-y-0.5 hover:border-accent/40"
                 style={{ boxShadow: "var(--shadow-sm)" }}
               >
                 <a.icon className="h-4 w-4 text-accent" />

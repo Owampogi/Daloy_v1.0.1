@@ -31,7 +31,7 @@ type ScriptEntry = {
 
 const SCRIPT: Record<string, ScriptEntry> = {
   "What is Daloy?": {
-    bot: "Daloy is a Filipino CRM built for SMEs. It helps you manage leads, automate follow-ups, and close more deals — all in one place. 🇵🇭",
+    bot: "Daloy is a Filipino lead-flow platform built for SMEs. It helps you manage leads, automate follow-ups, and close more deals — all in one place. 🇵🇭",
     options: ["Show me the plans", "How does the AI work?", "I want to get started"],
   },
   "Show me the plans": {
@@ -199,7 +199,7 @@ export function ChatbotWidget() {
                     <button
                       key={opt}
                       onClick={() => handleOption(opt)}
-                      className="flex items-center justify-between rounded-xl border border-border bg-background px-3 py-2 text-left text-xs font-medium text-foreground transition-colors hover:bg-secondary hover:border-accent/40"
+                      className="btn-surface w-full justify-between px-3 py-2 text-left text-xs"
                     >
                       {opt}
                       <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground" />
@@ -250,7 +250,7 @@ export function ChatbotWidget() {
           <button
             onClick={handleSend}
             disabled={!input.trim()}
-            className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground disabled:opacity-40 hover:opacity-90 transition-opacity"
+            className="btn-primary h-9 w-9 rounded-xl p-0"
           >
             <Send className="h-4 w-4" />
           </button>

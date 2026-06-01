@@ -29,19 +29,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>DALOY — AI-powered Lead Flow OS</title>
+        <title>DALOY - AI-powered lead-flow platform</title>
         <meta
           name="description"
           content="Capture, qualify, follow up, and convert leads automatically. Built for Philippine SMEs."
         />
-        <meta property="og:title" content="DALOY — AI-powered Lead Flow OS" />
+        <meta property="og:title" content="DALOY - AI-powered lead-flow platform" />
         <meta
           property="og:description"
           content="Capture, qualify, follow up, and convert leads automatically. Built for Philippine SMEs."
         />
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="DALOY — AI-powered Lead Flow OS" />
+        <meta name="twitter:title" content="DALOY - AI-powered lead-flow platform" />
         <meta
           name="twitter:description"
           content="Capture, qualify, follow up, and convert leads automatically. Built for Philippine SMEs."
@@ -79,11 +79,11 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   }
 
   return (
-    <main className="pt-16 p-4 container mx-auto">
+    <main className="container mx-auto pt-16 p-4">
       <h1>{message}</h1>
       <p>{details}</p>
       {stack && (
-        <pre className="w-full p-4 overflow-x-auto">
+        <pre className="w-full overflow-x-auto p-4">
           <code>{stack}</code>
         </pre>
       )}

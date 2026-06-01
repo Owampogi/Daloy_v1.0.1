@@ -11,14 +11,14 @@ const stages = [
 
 export function FlowSection() {
   return (
-    <section id="flow" className="border-t border-border bg-secondary/40">
+    <section id="flow" className="relative">
       <div className="mx-auto max-w-7xl px-6 py-24">
         <div className="mx-auto max-w-2xl text-center">
-          <span className="text-sm font-semibold uppercase tracking-wider text-accent">The Lead Flow</span>
-          <h2 className="mt-3 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+          <span className="text-sm font-semibold uppercase tracking-wider text-[#6DDFF5]">The Lead Flow</span>
+          <h2 className="mt-3 text-4xl font-bold tracking-tight text-white sm:text-5xl">
             One System. The Whole Journey.
           </h2>
-          <p className="mt-4 text-lg text-muted-foreground">
+          <p className="mt-4 text-lg text-white/75">
             From the first message to a loyal customer — DALOY orchestrates every step of your sales motion.
           </p>
         </div>
@@ -27,7 +27,7 @@ export function FlowSection() {
           {stages.map((s, i) => (
             <div
               key={s.title}
-              className="group relative rounded-2xl border border-border bg-card p-6 transition-all hover:-translate-y-0.5 hover:border-accent/40"
+              className="group relative rounded-2xl border border-white/10 bg-white/95 p-6 transition-all hover:-translate-y-0.5 hover:border-[#6DDFF5]/40"
               style={{ boxShadow: "var(--shadow-sm)" }}
             >
               <div className="flex items-center justify-between">

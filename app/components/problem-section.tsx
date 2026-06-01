@@ -10,14 +10,14 @@ const problems = [
 
 export function ProblemsSection() {
   return (
-    <section id="problems" className="border-t border-border">
+    <section id="problems" className="relative">
       <div className="mx-auto max-w-7xl px-6 py-24">
         <div className="mx-auto max-w-2xl text-center">
-          <span className="text-sm font-semibold uppercase tracking-wider text-accent">The problem</span>
-          <h2 className="mt-3 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+          <span className="text-sm font-semibold uppercase tracking-wider text-[#6DDFF5]">The problem</span>
+          <h2 className="mt-3 text-4xl font-bold tracking-tight text-white sm:text-5xl">
             Why Philippine SMEs lose leads.
           </h2>
-          <p className="mt-4 text-lg text-muted-foreground">
+          <p className="mt-4 text-lg text-white/75">
             Most teams aren't losing because of bad product — they're losing because the flow breaks somewhere between inquiry and close.
           </p>
         </div>
@@ -26,7 +26,7 @@ export function ProblemsSection() {
           {problems.map((p) => (
             <div
               key={p.title}
-              className="rounded-2xl border border-border bg-card p-6 transition-colors hover:border-foreground/10"
+              className="rounded-2xl border border-white/10 bg-white/95 p-6 transition-colors hover:border-[#6DDFF5]/40"
               style={{ boxShadow: "var(--shadow-sm)" }}
             >
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
