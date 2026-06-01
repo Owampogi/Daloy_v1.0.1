@@ -7,12 +7,12 @@ export function HeroSection() {
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 -z-10"
-        style={{ background: "var(--gradient-soft)" }}
+        // style={{ background: "var(--gradient-soft)" }}
       />
       <div
         aria-hidden
         className="pointer-events-none absolute -top-40 left-1/2 -z-10 h-[600px] w-[1100px] -translate-x-1/2 rounded-full opacity-40 blur-3xl"
-        style={{ background: "radial-gradient(closest-side, oklch(0.68 0.15 162 / 0.35), transparent)" }}
+        // style={{ background: "radial-gradient(closest-side, oklch(0.68 0.15 162 / 0.35), transparent)" }}
       />
 
       <div className="mx-auto max-w-7xl px-6 pt-20 pb-24 sm:pt-28 sm:pb-32">
