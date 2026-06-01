@@ -40,6 +40,10 @@ interface DashboardMetrics {
   overdueFollowUps: number;
   appointmentsThisWeek: number;
   aiRepliesUsed: number;
+  is_active: number;
+  triggered_count: number;
+  last_triggered_at: number;
+  leads_converted: number;
   recentLeads: Lead[];
 }
 
@@ -112,6 +116,10 @@ function DashboardPage() {
     overdueFollowUps: 0,
     appointmentsThisWeek: 0,
     aiRepliesUsed: 0,
+    is_active: 0,
+    triggered_count: 0,
+    last_triggered_at: 0,
+    leads_converted: 0,
     recentLeads: [],
   });
 
@@ -185,6 +193,8 @@ function DashboardPage() {
           { count: appointmentsThisWeek },
           { data: recentLeads },
           { data: aiUsage },
+          { data: automationStats },
+          { count: leadsConverted },
         ] = await Promise.all([
           // Total leads
           supabase
@@ -228,6 +238,20 @@ function DashboardPage() {
             .select("count")
             .eq("organization_id", oid)
             .single(),
+
+          // Automation stats
+          supabase
+            .from("automation_stats")
+            .select("is_active, triggered_count, last_triggered_at")
+            .eq("organization_id", oid)
+            .single(),
+
+          // Leads converted (e.g., leads with status 'Closed' or 'Converted')
+          supabase
+            .from("leads")
+            .select("*", { count: "exact", head: true })
+            .eq("organization_id", oid)
+            .in("status", ["Closed", "Converted", "Won"]),
         ]);
 
         setMetrics({
@@ -238,6 +262,10 @@ function DashboardPage() {
           appointmentsThisWeek: appointmentsThisWeek ?? 0,
           aiRepliesUsed: aiUsage?.count ?? 0,
           recentLeads: recentLeads ?? [],
+          is_active: automationStats?.is_active ?? 0,
+          triggered_count: automationStats?.triggered_count ?? 0,
+          last_triggered_at: automationStats?.last_triggered_at ?? 0,
+          leads_converted: leadsConverted ?? 0,
         });
       } catch (err) {
         console.error("Dashboard fetch error:", err);
@@ -598,9 +626,9 @@ function DashboardPage() {
               </div>
               <div className="mt-3 grid grid-cols-3 gap-3">
                 {[
-                  { label: "Active flows", value: "4" },
-                  { label: "Triggered today", value: "12" },
-                  { label: "Leads converted", value: "3" },
+                  { label: "Active flows", value: metrics.is_active.toString() },
+                  { label: "Triggered today", value: metrics.triggered_count.toString() },
+                  { label: "Leads converted", value: metrics.leads_converted.toString() },
                 ].map((s) => (
                   <div key={s.label} className="rounded-lg bg-secondary/60 px-3 py-2 text-center">
                     <p className="text-xl font-semibold text-foreground">{s.value}</p>

@@ -7,6 +7,9 @@ export function useDashboardMetrics() {
     openFollowUps: 0,
     appointments: 0,
     aiRepliesUsed: 0,
+    is_active: 0,
+    triggered_count: 0,
+    last_triggered_at: 0,
   });
 
   useEffect(() => {
@@ -28,6 +31,9 @@ export function useDashboardMetrics() {
         openFollowUps: openFollowUps ?? 0,
         appointments: appointments ?? 0,
         aiRepliesUsed: 0, // from your plan/usage table
+        is_active: 0, // from your org table
+        triggered_count: 0, // from your usage table
+        last_triggered_at: 0, // from your usage table
       });
     }
 
