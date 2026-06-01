@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { ChevronDown, HelpCircle, MessageCircle, Users, Clock, Zap, MessageSquare, Building2, CheckCircle2 } from "lucide-react";
+import { ChevronDown, HelpCircle, MessageCircle, Users, Clock, Zap, MessageSquare, Building2, CheckCircle2, Facebook } from "lucide-react";
 
 interface FAQItem {
   question: string;
