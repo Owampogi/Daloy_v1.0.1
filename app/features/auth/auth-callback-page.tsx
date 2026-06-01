@@ -11,9 +11,28 @@ function AuthCallbackPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    supabase.auth.onAuthStateChange((event, session) => {
+    supabase.auth.onAuthStateChange(async (event, session) => {
       if (session) {
-        navigate("/dashboard");
+        // Check if user has already selected a plan
+        const { data: member } = await supabase
+          .from("organization_members")
+          .select("organization_id, organizations(plan, is_trial)")
+          .eq("user_id", session.user.id)
+          .single();
+
+        if (!member) {
+          // No org yet — send to onboarding
+          navigate("/onboarding");
+          return;
+        }
+
+        // Check if plan is still default starter + trial (never selected a plan)
+        const org = member.organizations as any;
+        if (org?.is_trial && org?.plan === "starter") {
+          navigate("/onboarding");
+        } else {
+          navigate("/dashboard");
+        }
       } else {
         navigate("/login");
       }
