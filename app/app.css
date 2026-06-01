@@ -42,6 +42,7 @@
 
   --color-border: var(--border);
   --color-input: var(--input);
+
   --color-ring: var(--ring);
   --color-ring-offset-background: var(--background);
 
@@ -55,10 +56,15 @@
   /* Sidebar */
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
+
   --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary-foreground:
+    var(--sidebar-primary-foreground);
+
   --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent-foreground:
+    var(--sidebar-accent-foreground);
+
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
@@ -66,7 +72,7 @@
   --color-accent-soft: var(--accent-soft);
   --color-primary-hover: var(--primary-hover);
 
-  /* Typography */
+  /* Fonts */
   --font-sans:
     "Inter",
     ui-sans-serif,
@@ -102,7 +108,10 @@
 :root {
   --radius: 0.85rem;
 
-  /* DALOY COLORS */
+  /* ======================================================
+     BRAND COLORS
+  ====================================================== */
+
   --daloy-navy: #041633;
   --daloy-navy-2: #0b2857;
   --daloy-blue: #1f6fe5;
@@ -110,7 +119,10 @@
   --daloy-cyan: #6ddff5;
   --daloy-cyan-light: #a8f1ff;
 
-  /* Surfaces */
+  /* ======================================================
+     SURFACES
+  ====================================================== */
+
   --background: #ffffff;
   --foreground: #0f172a;
 
@@ -120,7 +132,10 @@
   --popover: #ffffff;
   --popover-foreground: #0f172a;
 
-  /* Brand */
+  /* ======================================================
+     BRAND TOKENS
+  ====================================================== */
+
   --primary: #041633;
   --primary-hover: #0b2857;
   --primary-foreground: #ffffff;
@@ -129,7 +144,10 @@
   --accent-foreground: #ffffff;
   --accent-soft: #eaf6ff;
 
-  /* Neutral */
+  /* ======================================================
+     NEUTRALS
+  ====================================================== */
+
   --secondary: #eef4f9;
   --secondary-foreground: #0f172a;
 
@@ -141,11 +159,17 @@
 
   --ring: #6ddff5;
 
-  /* Status */
+  /* ======================================================
+     STATUS
+  ====================================================== */
+
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
 
-  /* Brand Gradients */
+  /* ======================================================
+     GRADIENTS
+  ====================================================== */
+
   --gradient-brand:
     linear-gradient(
       135deg,
@@ -169,7 +193,33 @@
       #f8fafc 100%
     );
 
-  /* Shadows */
+  /* ======================================================
+     SECTION BACKGROUNDS
+  ====================================================== */
+
+  --section-hero: var(--gradient-brand);
+
+  --section-light: #ffffff;
+
+  --section-soft: #f8fbff;
+
+  --section-dark: #041633;
+
+  --section-footer: #020b1a;
+
+  --section-cta: var(--gradient-accent);
+
+  --hero-glow:
+    radial-gradient(
+      circle,
+      rgba(109, 223, 245, 0.18),
+      transparent 70%
+    );
+
+  /* ======================================================
+     SHADOWS
+  ====================================================== */
+
   --shadow-sm:
     0 2px 8px rgba(4, 22, 51, 0.06);
 
@@ -185,14 +235,20 @@
   --transition-smooth:
     300ms cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* Charts */
+  /* ======================================================
+     CHARTS
+  ====================================================== */
+
   --chart-1: #1f6fe5;
   --chart-2: #6ddff5;
   --chart-3: #0b2857;
   --chart-4: #a8f1ff;
   --chart-5: #041633;
 
-  /* Sidebar */
+  /* ======================================================
+     SIDEBAR
+  ====================================================== */
+
   --sidebar: #ffffff;
   --sidebar-foreground: #0f172a;
 
@@ -250,7 +306,7 @@
   --sidebar-accent: #102850;
   --sidebar-accent-foreground: #ffffff;
 
-  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-border: rgba(255,255,255,0.1);
   --sidebar-ring: #6ddff5;
 }
 
@@ -268,7 +324,7 @@
   }
 
   body {
-    background-color: var(--color-background);
+    background: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
     text-rendering: optimizeLegibility;
@@ -297,6 +353,38 @@
     box-shadow: var(--shadow-glow);
   }
 
+  .section-hero {
+    background: var(--section-hero);
+    color: white;
+  }
+
+  .section-light {
+    background: var(--section-light);
+  }
+
+  .section-soft {
+    background: var(--section-soft);
+  }
+
+  .section-dark {
+    background: var(--section-dark);
+    color: white;
+  }
+
+  .section-footer {
+    background: var(--section-footer);
+    color: white;
+  }
+
+  .section-cta {
+    background: var(--section-cta);
+    color: white;
+  }
+
+  .hero-glow {
+    background: var(--hero-glow);
+  }
+
   .wave-glow {
     position: absolute;
     inset: 0;
@@ -304,7 +392,7 @@
     background:
       radial-gradient(
         circle at 50% 100%,
-        rgba(109, 223, 245, 0.15),
+        rgba(109,223,245,0.15),
         transparent 60%
       );
   }
