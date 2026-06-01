@@ -92,8 +92,9 @@ function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // For MVP — default to starter; later fetch from DB
-  const plan: Plan = "starter";
+  // Read selected plan from user_metadata (set during registration)
+  const rawPlan = user?.user_metadata?.selected_plan;
+  const plan: Plan = (["starter", "growth", "business"].includes(rawPlan) ? rawPlan : "starter") as Plan;
   const config = PLAN_CONFIG[plan];
   const isStarter = plan === "starter";
   const isBusiness = plan === "business";
