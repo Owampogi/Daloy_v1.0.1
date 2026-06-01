@@ -5,7 +5,7 @@ import { FeaturesSection } from "~/components/features-section";
 import { PricingSection } from "~/components/pricing-section";
 import { Navbar } from "~/components/nav-menu";
 import { ChatbotWidget } from "~/components/chatbot-widget";
-import FAQSection from "~/components/faq-section";
+import { FaqSection } from "~/components/faq-section";
 // Add as you build them:
 
 // import { StatsSection } from "~/components/stats-section";
