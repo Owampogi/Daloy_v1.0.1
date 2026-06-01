@@ -29,6 +29,23 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>DALOY — AI-powered Lead Flow OS</title>
+        <meta
+          name="description"
+          content="Capture, qualify, follow up, and convert leads automatically. Built for Philippine SMEs."
+        />
+        <meta property="og:title" content="DALOY — AI-powered Lead Flow OS" />
+        <meta
+          property="og:description"
+          content="Capture, qualify, follow up, and convert leads automatically. Built for Philippine SMEs."
+        />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="DALOY — AI-powered Lead Flow OS" />
+        <meta
+          name="twitter:description"
+          content="Capture, qualify, follow up, and convert leads automatically. Built for Philippine SMEs."
+        />
         <Meta />
         <Links />
       </head>
