@@ -22,7 +22,7 @@ export default function Home() {
       <FlowSection />
       <FeaturesSection />
       <PricingSection />
-      <FAQSection />
+      <FaqSection />
       {/* <StatsSection /> */}
       {/* <TestimonialsSection /> */}
       {/* <CtaSection /> */}
