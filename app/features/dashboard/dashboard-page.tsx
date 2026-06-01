@@ -22,16 +22,35 @@ import { Link, useNavigate } from "react-router";
 import { supabase } from "~/services/supabase-client";
 import type { User } from "@supabase/supabase-js";
 
-// ─── Plan config ───────────────────────────────────────────────────────────────
+// ─── Types ─────────────────────────────────────────────────────────────────────
 type Plan = "starter" | "growth" | "business";
 
+interface Lead {
+  id: string;
+  name: string;
+  source: string;
+  status: string;
+  created_at: string;
+}
+
+interface DashboardMetrics {
+  totalLeads: number;
+  totalLeadsToday: number;
+  openFollowUps: number;
+  overdueFollowUps: number;
+  appointmentsThisWeek: number;
+  aiRepliesUsed: number;
+  recentLeads: Lead[];
+}
+
+// ─── Plan config ───────────────────────────────────────────────────────────────
 const PLAN_CONFIG = {
   starter: {
     label: "Starter",
     price: "₱1,499/mo",
-    seats: { used: 1, total: 1 },
-    aiReplies: { used: 120, limit: 500, label: "500/mo" },
-    channels: { used: 1, total: 2, label: "2 channels" },
+    seats: { total: 1 },
+    aiReplies: { limit: 500, label: "500/mo" },
+    channels: { label: "2 channels" },
     analyticsLocked: true,
     automationsLocked: true,
     auditLogs: false,
@@ -39,9 +58,9 @@ const PLAN_CONFIG = {
   growth: {
     label: "Growth",
     price: "₱4,999/mo",
-    seats: { used: 3, total: 5 },
-    aiReplies: { used: 820, limit: 5000, label: "5,000/mo" },
-    channels: { used: 4, total: null, label: "All channels" },
+    seats: { total: 5 },
+    aiReplies: { limit: 5000, label: "5,000/mo" },
+    channels: { label: "All channels" },
     analyticsLocked: false,
     automationsLocked: false,
     auditLogs: false,
@@ -49,21 +68,14 @@ const PLAN_CONFIG = {
   business: {
     label: "Business",
     price: "Custom",
-    seats: { used: 12, total: null },
-    aiReplies: { used: 0, limit: null, label: "Unlimited" },
-    channels: { used: 4, total: null, label: "All channels" },
+    seats: { total: null },
+    aiReplies: { limit: null, label: "Unlimited" },
+    channels: { label: "All channels" },
     analyticsLocked: false,
     automationsLocked: false,
     auditLogs: true,
   },
 };
-
-const mockLeads = [
-  { name: "Juan dela Cruz", source: "Facebook", status: "New", time: "2h ago" },
-  { name: "Sofia Reyes", source: "Instagram", status: "Qualified", time: "5h ago" },
-  { name: "Mark Lim", source: "Website", status: "Follow-up", time: "1d ago" },
-  { name: "Rina Castro", source: "Referral", status: "Cold", time: "2d ago" },
-];
 
 const statusStyles: Record<string, string> = {
   New: "bg-emerald-50 text-emerald-700",
@@ -91,16 +103,26 @@ function DashboardPage() {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [orgId, setOrgId] = useState<string | null>(null);
+  const [seatCount, setSeatCount] = useState(1);
+  const [metrics, setMetrics] = useState<DashboardMetrics>({
+    totalLeads: 0,
+    totalLeadsToday: 0,
+    openFollowUps: 0,
+    overdueFollowUps: 0,
+    appointmentsThisWeek: 0,
+    aiRepliesUsed: 0,
+    recentLeads: [],
+  });
 
-  // Read selected plan from user_metadata (set during registration)
   const rawPlan = user?.user_metadata?.selected_plan;
   const plan: Plan = (["starter", "growth", "business"].includes(rawPlan) ? rawPlan : "starter") as Plan;
   const config = PLAN_CONFIG[plan];
   const isStarter = plan === "starter";
   const isBusiness = plan === "business";
 
+  // ─── Auth ──────────────────────────────────────────────────────────────────
   useEffect(() => {
-    // Get current session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) {
         navigate("/login");
@@ -110,7 +132,6 @@ function DashboardPage() {
       setLoading(false);
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
         navigate("/login");
@@ -122,16 +143,121 @@ function DashboardPage() {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  // ─── Fetch org + metrics ───────────────────────────────────────────────────
+  useEffect(() => {
+    if (!user) return;
+
+    async function fetchData() {
+      try {
+        // 1. Get user's organization
+        const { data: memberData } = await supabase
+          .from("organization_members")
+          .select("organization_id")
+          .eq("user_id", user!.id)
+          .single();
+
+        if (!memberData) return;
+        const oid = memberData.organization_id;
+        setOrgId(oid);
+
+        // 2. Get seat count
+        const { count: seats } = await supabase
+          .from("organization_members")
+          .select("*", { count: "exact", head: true })
+          .eq("organization_id", oid);
+        setSeatCount(seats ?? 1);
+
+        // 3. Get all leads metrics in parallel
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+
+        const weekStart = new Date();
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+        weekStart.setHours(0, 0, 0, 0);
+
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekEnd.getDate() + 7);
+
+        const [
+          { count: totalLeads },
+          { count: totalLeadsToday },
+          { count: openFollowUps },
+          { count: appointmentsThisWeek },
+          { data: recentLeads },
+          { data: aiUsage },
+        ] = await Promise.all([
+          // Total leads
+          supabase
+            .from("leads")
+            .select("*", { count: "exact", head: true })
+            .eq("organization_id", oid),
+
+          // Leads added today
+          supabase
+            .from("leads")
+            .select("*", { count: "exact", head: true })
+            .eq("organization_id", oid)
+            .gte("created_at", todayStart.toISOString()),
+
+          // Open follow-ups
+          supabase
+            .from("leads")
+            .select("*", { count: "exact", head: true })
+            .eq("organization_id", oid)
+            .eq("status", "Follow-up"),
+
+          // Appointments this week
+          supabase
+            .from("appointments")
+            .select("*", { count: "exact", head: true })
+            .eq("organization_id", oid)
+            .gte("scheduled_at", weekStart.toISOString())
+            .lt("scheduled_at", weekEnd.toISOString()),
+
+          // Recent leads (last 5)
+          supabase
+            .from("leads")
+            .select("id, name, source, status, created_at")
+            .eq("organization_id", oid)
+            .order("created_at", { ascending: false })
+            .limit(5),
+
+          // AI usage
+          supabase
+            .from("ai_usage")
+            .select("count")
+            .eq("organization_id", oid)
+            .single(),
+        ]);
+
+        setMetrics({
+          totalLeads: totalLeads ?? 0,
+          totalLeadsToday: totalLeadsToday ?? 0,
+          openFollowUps: openFollowUps ?? 0,
+          overdueFollowUps: 0, // extend later with due_date column
+          appointmentsThisWeek: appointmentsThisWeek ?? 0,
+          aiRepliesUsed: aiUsage?.count ?? 0,
+          recentLeads: recentLeads ?? [],
+        });
+      } catch (err) {
+        console.error("Dashboard fetch error:", err);
+      }
+    }
+
+    fetchData();
+  }, [user]);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/login");
   };
 
-  // Derive display name & initials from real user
-  const displayName = user?.user_metadata?.full_name
-    || user?.user_metadata?.name
-    || user?.email?.split("@")[0]
-    || "User";
+  // ─── Display helpers ───────────────────────────────────────────────────────
+  const displayName =
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    user?.email?.split("@")[0] ||
+    "User";
 
   const initials = displayName
     .split(" ")
@@ -141,20 +267,46 @@ function DashboardPage() {
     .slice(0, 2);
 
   const aiProgress = config.aiReplies.limit
-    ? Math.round((config.aiReplies.used / config.aiReplies.limit) * 100)
+    ? Math.round((metrics.aiRepliesUsed / config.aiReplies.limit) * 100)
     : null;
 
-  const metrics = [
-    { label: "Total Leads", value: "24", delta: "+3 today", up: true },
+  const dashboardMetrics = [
+    {
+      label: "Total Leads",
+      value: metrics.totalLeads.toString(),
+      delta: `+${metrics.totalLeadsToday} today`,
+      up: true,
+    },
     {
       label: "AI Replies Used",
-      value: config.aiReplies.limit ? config.aiReplies.used.toLocaleString() : "∞",
+      value: config.aiReplies.limit ? metrics.aiRepliesUsed.toLocaleString() : "∞",
       sub: `of ${config.aiReplies.label}`,
       progress: aiProgress,
     },
-    { label: "Open Follow-ups", value: "7", delta: "2 overdue", up: false },
-    { label: "Appointments", value: "3", delta: "this week", up: true },
+    {
+      label: "Open Follow-ups",
+      value: metrics.openFollowUps.toString(),
+      delta: metrics.overdueFollowUps > 0 ? `${metrics.overdueFollowUps} overdue` : "All on track",
+      up: metrics.overdueFollowUps === 0,
+    },
+    {
+      label: "Appointments",
+      value: metrics.appointmentsThisWeek.toString(),
+      delta: "this week",
+      up: true,
+    },
   ];
+
+  // ─── Relative time helper ──────────────────────────────────────────────────
+  function timeAgo(dateStr: string) {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    const hours = Math.floor(mins / 60);
+    const days = Math.floor(hours / 24);
+    if (days > 0) return `${days}d ago`;
+    if (hours > 0) return `${hours}h ago`;
+    return `${mins}m ago`;
+  }
 
   if (loading) {
     return (
@@ -218,13 +370,13 @@ function DashboardPage() {
           <div className="mt-3">
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>Seats</span>
-              <span>{config.seats.used} / {config.seats.total ?? "∞"}</span>
+              <span>{seatCount} / {config.seats.total ?? "∞"}</span>
             </div>
             {config.seats.total && (
               <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-border">
                 <div
                   className="h-full rounded-full bg-primary transition-all"
-                  style={{ width: `${(config.seats.used / config.seats.total) * 100}%` }}
+                  style={{ width: `${(seatCount / config.seats.total) * 100}%` }}
                 />
               </div>
             )}
@@ -236,7 +388,7 @@ function DashboardPage() {
               <span>AI replies</span>
               <span>
                 {config.aiReplies.limit
-                  ? `${config.aiReplies.used} / ${config.aiReplies.limit.toLocaleString()}`
+                  ? `${metrics.aiRepliesUsed} / ${config.aiReplies.limit.toLocaleString()}`
                   : "Unlimited"}
               </span>
             </div>
@@ -274,7 +426,9 @@ function DashboardPage() {
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-border bg-background/80 px-6 backdrop-blur-lg">
           <div>
             <p className="text-base font-semibold text-foreground">Command Center</p>
-            <p className="text-xs text-muted-foreground">Monday, June 1, 2026</p>
+            <p className="text-xs text-muted-foreground">
+              {new Date().toLocaleDateString("en-PH", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+            </p>
           </div>
           <div className="flex items-center gap-3">
             <button className="relative inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary">
@@ -323,7 +477,7 @@ function DashboardPage() {
 
           {/* Metrics */}
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            {metrics.map((m) => (
+            {dashboardMetrics.map((m) => (
               <div
                 key={m.label}
                 className="rounded-xl border border-border bg-background p-4"
@@ -352,7 +506,7 @@ function DashboardPage() {
           </div>
 
           <div className="mt-6 grid gap-6 lg:grid-cols-2">
-            {/* Recent Leads */}
+            {/* Recent Leads — now real data */}
             <div className="rounded-xl border border-border bg-background" style={{ boxShadow: "var(--shadow-sm)" }}>
               <div className="flex items-center justify-between border-b border-border px-5 py-4">
                 <p className="text-sm font-semibold text-foreground">Recent leads</p>
@@ -361,20 +515,28 @@ function DashboardPage() {
                 </Link>
               </div>
               <div className="divide-y divide-border">
-                {mockLeads.map((lead) => (
-                  <div key={lead.name} className="flex items-center gap-3 px-5 py-3">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-foreground">
-                      {lead.name.split(" ").map((n) => n[0]).join("")}
+                {metrics.recentLeads.length === 0 ? (
+                  <p className="px-5 py-6 text-center text-sm text-muted-foreground">
+                    No leads yet. <Link to="/leads" className="text-accent hover:underline">Add your first lead →</Link>
+                  </p>
+                ) : (
+                  metrics.recentLeads.map((lead) => (
+                    <div key={lead.id} className="flex items-center gap-3 px-5 py-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-foreground">
+                        {lead.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="truncate text-sm font-medium text-foreground">{lead.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {lead.source} · {timeAgo(lead.created_at)}
+                        </p>
+                      </div>
+                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${statusStyles[lead.status] ?? "bg-gray-100 text-gray-500"}`}>
+                        {lead.status}
+                      </span>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="truncate text-sm font-medium text-foreground">{lead.name}</p>
-                      <p className="text-xs text-muted-foreground">{lead.source} · {lead.time}</p>
-                    </div>
-                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${statusStyles[lead.status]}`}>
-                      {lead.status}
-                    </span>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
 
