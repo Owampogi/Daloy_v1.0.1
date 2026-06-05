@@ -1,53 +1,101 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router";
 import { supabase } from "~/services/supabase-client";
 import { Eye, EyeOff, Loader2, Check, ArrowLeft } from "lucide-react";
+
+// ─── Plan definitions ────────────────────────────────────────────────────────
 
 const plans = [
   {
     id: "starter",
     name: "Starter",
     price: "₱1,499",
+    amount: "1",
     period: "/month",
     desc: "For solo founders and small teams.",
-    features: ["1 user seat", "Unified inbox (2 channels)", "AI replies — 500/mo", "Basic pipelines"],
+    features: [
+      "1 user seat",
+      "Unified inbox (2 channels)",
+      "AI replies — 500/mo",
+      "Basic pipelines",
+    ],
     featured: false,
   },
   {
     id: "growth",
     name: "Growth",
     price: "₱4,999",
+    amount: "2",
     period: "/month",
     desc: "For growing SMEs ready to scale.",
-    features: ["5 user seats", "All channels", "AI replies — 5,000/mo", "Smart pipelines & automations", "Appointment booking", "Priority support"],
+    features: [
+      "5 user seats",
+      "All channels",
+      "AI replies — 5,000/mo",
+      "Smart pipelines & automations",
+      "Appointment booking",
+      "Priority support",
+    ],
     featured: true,
   },
   {
     id: "business",
     name: "Business",
     price: "Custom",
+    amount: null,
     period: "",
     desc: "For established businesses.",
-    features: ["Unlimited seats", "Custom AI training", "Dedicated success manager", "API & integrations", "SLA & audit logs"],
+    features: [
+      "Unlimited seats",
+      "Custom AI training",
+      "Dedicated success manager",
+      "API & integrations",
+      "SLA & audit logs",
+    ],
     featured: false,
   },
 ];
 
-export function loader() {
-  return {};
-}
+// ─── InstaPay config ──────────────────────────────────────────────────────────
+
+const INSTAPAY_NAME   = "Marc Adrian C.";
+const INSTAPAY_NUMBER = "09465339112";
+const INSTAPAY_QR     = "/qrcode.png"; // place the cropped QR in /public
+
+// ─── Component ───────────────────────────────────────────────────────────────
 
 function RegisterPage() {
   const navigate = useNavigate();
-  const [step, setStep] = useState<1 | 2>(1);
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+
+  // Step 1
+  const [fullName,     setFullName]     = useState("");
+  const [email,        setEmail]        = useState("");
+  const [password,     setPassword]     = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  // Step 2
   const [selectedPlan, setSelectedPlan] = useState("growth");
-  const [loading, setLoading] = useState(false);
+
+  // Step 3
+  const [refNumber,      setRefNumber]      = useState("");
+  const [orderReference, setOrderReference] = useState<string>("");
+
+  // UI
+  const [loading,       setLoading]       = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error,         setError]         = useState("");
+
+  const currentPlan = plans.find((p) => p.id === selectedPlan)!;
+
+  // Generate order reference when entering Step 3
+  useEffect(() => {
+    if (step !== 3 || !currentPlan.amount) return;
+    setOrderReference(`DLY-${Date.now().toString(36).toUpperCase()}`);
+  }, [step, selectedPlan]);
+
+  // ── Handlers ─────────────────────────────────────────────────────────────
 
   const handleStep1 = (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,50 +103,91 @@ function RegisterPage() {
     setStep(2);
   };
 
-  const handleRegister = async () => {
+  const handleStep2 = () => {
     if (selectedPlan === "business") {
-      window.location.href = "mailto:sales@daloy.app?subject=Business Plan Inquiry";
+      window.location.href =
+        "mailto:marcadriancuano@gmail.com?subject=Business Plan Inquiry";
+      return;
+    }
+    setError("");
+    setStep(3);
+  };
+
+  const handleRegister = async () => {
+    if (!refNumber.trim()) {
+      setError("Please enter your InstaPay reference number.");
       return;
     }
 
     setError("");
     setLoading(true);
 
-    const { error } = await supabase.auth.signUp({
+    // 1. Record payment
+    const { error: paymentError } = await supabase
+      .from("payments")
+      .insert({
+        user_email:        email,
+        plan:              selectedPlan,
+        amount:            currentPlan.amount,
+        order_reference:   orderReference,
+        gcash_ref_number:  refNumber,
+        status:            "pending_verification",
+        created_at:        new Date().toISOString(),
+      })
+      // .select()
+      // .single();
+
+    if (paymentError) {
+      setError("Failed to record payment. Please try again.");
+      setLoading(false);
+      return;
+    }
+
+    // 2. Create Supabase auth user
+    const { error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
-          full_name: fullName,
-          selected_plan: selectedPlan,
+          full_name:       fullName,
+          selected_plan:   selectedPlan,
+          payment_ref:     refNumber,
+          payment_status:  "pending",
+          order_reference: orderReference,
         },
       },
     });
 
-    if (error) {
-      setError(error.message);
+    if (signUpError) {
+      setError(signUpError.message);
       setLoading(false);
       return;
     }
 
     setLoading(false);
-    // ✅ Navigate to OTP page, pass email via state
-    navigate("/verify-otp", { state: { email, plan: selectedPlan } });
+    navigate("/verify-otp", {
+      state: {
+        email,
+        plan: selectedPlan,
+        orderReference,
+        paymentPending: true,
+      },
+    });
   };
 
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
     if (error) {
       setError(error.message);
       setGoogleLoading(false);
     }
   };
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-secondary/40 px-4 py-12">
@@ -116,21 +205,33 @@ function RegisterPage() {
 
         {/* Step indicator */}
         <div className="mb-6 flex items-center justify-center gap-3">
-          <div className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${step >= 1 ? "bg-primary text-primary-foreground" : "bg-border text-muted-foreground"}`}>
-            {step > 1 ? <Check className="h-3.5 w-3.5" /> : "1"}
-          </div>
-          <div className={`h-px w-12 ${step >= 2 ? "bg-primary" : "bg-border"}`} />
-          <div className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${step >= 2 ? "bg-primary text-primary-foreground" : "bg-border text-muted-foreground"}`}>
-            2
-          </div>
+          {[1, 2, 3].map((s, i) => (
+            <div key={s} className="flex items-center gap-3">
+              <div
+                className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${
+                  step > s
+                    ? "bg-primary text-primary-foreground"
+                    : step === s
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-border text-muted-foreground"
+                }`}
+              >
+                {step > s ? <Check className="h-3.5 w-3.5" /> : s}
+              </div>
+              {i < 2 && (
+                <div className={`h-px w-12 ${step > s ? "bg-primary" : "bg-border"}`} />
+              )}
+            </div>
+          ))}
         </div>
 
-        {/* Step 1 — Account info */}
+        {/* ── Step 1 — Account Info ── */}
         {step === 1 && (
           <div className="rounded-2xl border border-border bg-background p-8 shadow-sm">
-            <h2 className="mb-6 text-lg font-semibold text-foreground">Your account details</h2>
+            <h2 className="mb-6 text-lg font-semibold text-foreground">
+              Your account details
+            </h2>
 
-            {/* Google */}
             <button
               onClick={handleGoogleLogin}
               disabled={googleLoading}
@@ -161,8 +262,11 @@ function RegisterPage() {
                   {error}
                 </div>
               )}
+
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Full Name</label>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">
+                  Full Name
+                </label>
                 <input
                   type="text"
                   value={fullName}
@@ -172,8 +276,11 @@ function RegisterPage() {
                   className="w-full rounded-xl border border-border bg-secondary/40 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
               </div>
+
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Email</label>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">
+                  Email
+                </label>
                 <input
                   type="email"
                   value={email}
@@ -183,8 +290,11 @@ function RegisterPage() {
                   className="w-full rounded-xl border border-border bg-secondary/40 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
               </div>
+
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Password</label>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">
+                  Password
+                </label>
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
@@ -200,26 +310,30 @@ function RegisterPage() {
                     onClick={() => setShowPassword((v) => !v)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
               </div>
-              <button
-                type="submit"
-                className="btn-primary w-full"
-              >
+
+              <button type="submit" className="btn-primary w-full">
                 Next — Choose your plan
               </button>
             </form>
 
             <p className="mt-6 text-center text-sm text-muted-foreground">
               Already have an account?{" "}
-              <Link to="/login" className="font-medium text-accent hover:underline">Sign in</Link>
+              <Link to="/login" className="font-medium text-accent hover:underline">
+                Sign in
+              </Link>
             </p>
           </div>
         )}
 
-        {/* Step 2 — Plan selection */}
+        {/* ── Step 2 — Plan Selection ── */}
         {step === 2 && (
           <div>
             <button
@@ -229,9 +343,13 @@ function RegisterPage() {
               <ArrowLeft className="h-4 w-4" /> Back
             </button>
 
-            <h2 className="mb-2 text-lg font-semibold text-foreground">Choose your plan</h2>
+            <h2 className="mb-2 text-lg font-semibold text-foreground">
+              Choose your plan
+            </h2>
             <p className="mb-6 text-sm text-muted-foreground">
-              All plans include a <span className="font-semibold text-accent">14-day free trial</span>. No credit card required.
+              All plans include a{" "}
+              <span className="font-semibold text-accent">14-day free trial</span>.
+              No credit card required.
             </p>
 
             <div className="space-y-3">
@@ -253,20 +371,31 @@ function RegisterPage() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-foreground">{plan.name}</span>
-                        <span className="text-sm text-muted-foreground">{plan.desc}</span>
+                        <span className="font-semibold text-foreground">
+                          {plan.name}
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          {plan.desc}
+                        </span>
                       </div>
                       <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
                         {plan.features.map((f) => (
-                          <span key={f} className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <span
+                            key={f}
+                            className="flex items-center gap-1 text-xs text-muted-foreground"
+                          >
                             <Check className="h-3 w-3 text-accent" /> {f}
                           </span>
                         ))}
                       </div>
                     </div>
-                    <div className="text-right shrink-0">
-                      <span className="text-lg font-bold text-foreground">{plan.price}</span>
-                      <span className="text-xs text-muted-foreground">{plan.period}</span>
+                    <div className="shrink-0 text-right">
+                      <span className="text-lg font-bold text-foreground">
+                        {plan.price}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {plan.period}
+                      </span>
                     </div>
                   </div>
                   {selectedPlan === plan.id && (
@@ -284,17 +413,122 @@ function RegisterPage() {
               </div>
             )}
 
-            <button
-              onClick={handleRegister}
-              disabled={loading}
-              className="btn-primary mt-6 w-full"
-            >
-              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-              {selectedPlan === "business" ? "Talk to sales" : "Create account & start free trial"}
+            <button onClick={handleStep2} className="btn-primary mt-6 w-full">
+              {selectedPlan === "business"
+                ? "Talk to sales"
+                : "Continue to payment →"}
             </button>
 
             <p className="mt-3 text-center text-xs text-muted-foreground">
               No credit card required · Cancel anytime
+            </p>
+          </div>
+        )}
+
+        {/* ── Step 3 — InstaPay Payment ── */}
+        {step === 3 && currentPlan.amount && (
+          <div>
+            <button
+              onClick={() => setStep(2)}
+              className="mb-4 flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="h-4 w-4" /> Back
+            </button>
+
+            <h2 className="mb-1 text-lg font-semibold text-foreground">
+              Payment
+            </h2>
+            <p className="mb-6 text-sm text-muted-foreground">
+              I-scan ang QR code gamit ang iyong banking app o GCash.
+            </p>
+
+            {/* Order summary */}
+            <div className="mb-5 flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3">
+              <div>
+                <p className="text-sm font-semibold text-foreground">
+                  {currentPlan.name} Plan
+                </p>
+                <p className="text-xs text-muted-foreground">{currentPlan.desc}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Order: {orderReference}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-bold text-foreground">
+                  ₱{Number(currentPlan.amount).toLocaleString()}
+                </p>
+                <p className="text-xs text-muted-foreground">{currentPlan.period}</p>
+              </div>
+            </div>
+
+            {/* InstaPay QR card */}
+            <div className="mb-5 flex flex-col items-center rounded-2xl border border-border bg-card p-6">
+
+              {/* InstaPay logo */}
+              <div className="mb-3 flex items-center gap-2">
+                <div className="flex items-center gap-1">
+                  <span className="text-sm font-bold text-[#E31837]">insta</span>
+                  <span className="text-sm font-bold text-[#003087]">Pay</span>
+                </div>
+                <span className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                  Any bank · GCash · Maya
+                </span>
+              </div>
+
+              {/* Static QR image */}
+              <img
+                src={INSTAPAY_QR}
+                alt="InstaPay QR Code"
+                className="mb-3 h-48 w-48 rounded-xl border border-border object-contain"
+              />
+
+              <p className="text-sm font-semibold text-foreground">{INSTAPAY_NAME}</p>
+              <p className="text-sm text-muted-foreground">{INSTAPAY_NUMBER}</p>
+              <p className="mt-2 text-lg font-bold text-foreground">
+                ₱{Number(currentPlan.amount).toLocaleString()}
+              </p>
+              <p className="mt-1 text-center text-xs text-muted-foreground">
+                Ref: {orderReference}
+              </p>
+              <p className="mt-2 text-center text-[11px] text-muted-foreground">
+                Transfer fees may apply.
+              </p>
+            </div>
+
+            {/* Reference number input */}
+            <div className="mb-5">
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                InstaPay Reference Number
+              </label>
+              <input
+                type="text"
+                value={refNumber}
+                onChange={(e) => setRefNumber(e.target.value)}
+                placeholder="e.g. 1234567890"
+                className="w-full rounded-xl border border-border bg-secondary/40 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                Makikita ang reference number sa iyong transaction history pagkatapos ng transfer.
+              </p>
+            </div>
+
+            {error && (
+              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {error}
+              </div>
+            )}
+
+            <button
+              onClick={handleRegister}
+              disabled={loading}
+              className="btn-primary w-full"
+            >
+              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+              Create account & start free trial
+            </button>
+
+            <p className="mt-3 text-center text-xs text-muted-foreground">
+              Your account will be activated after payment verification · Cancel anytime
             </p>
           </div>
         )}
