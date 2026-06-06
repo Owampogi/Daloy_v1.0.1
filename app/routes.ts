@@ -7,8 +7,9 @@ export default [
   route("verify-otp", "features/auth/verify-otp-page.tsx"),
   route("forgot-password", "features/auth/forgot-password-page.tsx"),
   route("auth/callback", "features/auth/auth-callback-page.tsx"),
-  route("pricing", "features/billing/pricing-page.tsx"),        // ← new
-  route("checkout", "features/billing/checkout-page.tsx"),      // ← new
+  route("accept-invite", "features/auth/accept-invite.tsx"),   // ← updated
+  route("pricing", "features/billing/pricing-page.tsx"),
+  route("checkout", "features/billing/checkout-page.tsx"),
 
   layout("layouts/main-layout.tsx", [
     route("dashboard", "features/dashboard/dashboard-page.tsx"),

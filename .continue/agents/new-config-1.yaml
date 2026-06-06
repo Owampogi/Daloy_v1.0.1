@@ -1,0 +1,10 @@
+name: Mimo Config
+version: 1.0.0
+schema: v1
+
+models:
+  - name: Mimo v2.5 Pro
+    provider: openai
+    model: mimo-v2.5-pro
+    apiBase: https://token-plan-sgp.xiaomimimo.com/v1
+    apiKey: tp-ss78biuteapkliaue3m25a1l9fotqh2by2h02oombeavsbah

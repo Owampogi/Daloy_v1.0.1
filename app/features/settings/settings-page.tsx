@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   Bell, UserCircle, Users, Inbox, Tag, Zap,
-  Plus, Pencil, Trash2, X, Check, Loader2,
+  Plus, Pencil, Trash2, X, Check, Loader2, Mail, CheckCircle2,
 } from "lucide-react";
 import { useOutletContext } from "react-router";
 import { supabase } from "~/services/supabase-client";
@@ -83,11 +83,58 @@ function getInitials(name: string) {
   return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 }
 
+// ─── Toast ─────────────────────────────────────────────────────────────────────
+interface ToastState {
+  show: boolean;
+  type: "success" | "error";
+  title: string;
+  message: string;
+}
+
+function Toast({ toast, onClose }: { toast: ToastState; onClose: () => void }) {
+  useEffect(() => {
+    if (!toast.show) return;
+    const t = setTimeout(onClose, 4000);
+    return () => clearTimeout(t);
+  }, [toast.show]);
+
+  if (!toast.show) return null;
+
+  return (
+    <div className={`fixed bottom-6 right-6 z-[100] flex items-start gap-3 rounded-xl border px-4 py-3 shadow-lg backdrop-blur-sm transition-all animate-in slide-in-from-bottom-4 max-w-sm ${
+      toast.type === "success"
+        ? "border-green-200 bg-green-50 text-green-900"
+        : "border-red-200 bg-red-50 text-red-900"
+    }`}>
+      {toast.type === "success"
+        ? <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-600 shrink-0" />
+        : <X className="h-4 w-4 mt-0.5 text-red-600 shrink-0" />
+      }
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold">{toast.title}</p>
+        <p className="text-xs mt-0.5 opacity-80">{toast.message}</p>
+      </div>
+      <button onClick={onClose} className="h-5 w-5 flex items-center justify-center rounded hover:opacity-60 shrink-0">
+        <X className="h-3 w-3" />
+      </button>
+    </div>
+  );
+}
+
 // ─── Component ─────────────────────────────────────────────────────────────────
 export default function SettingsPage() {
   const { user, displayName, initials } = useOutletContext<any>();
   const [tab, setTab] = useState<SettingsTab>("account");
   const [orgId, setOrgId] = useState<string | null>(null);
+
+  // Toast
+  const [toast, setToast] = useState<ToastState>({
+    show: false, type: "success", title: "", message: "",
+  });
+
+  function showToast(type: "success" | "error", title: string, message: string) {
+    setToast({ show: true, type, title, message });
+  }
 
   // Account
   const [fullName, setFullName] = useState(displayName ?? "");
@@ -101,6 +148,7 @@ export default function SettingsPage() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviting, setInviting] = useState(false);
+  const [inviteSuccess, setInviteSuccess] = useState(false);
 
   // Inboxes
   const [inboxes, setInboxes] = useState<InboxChannel[]>([]);
@@ -131,7 +179,6 @@ export default function SettingsPage() {
       const oid = memberData.organization_id;
       setOrgId(oid);
 
-      // Org name
       const { data: org } = await supabase
         .from("organizations")
         .select("name")
@@ -193,42 +240,76 @@ export default function SettingsPage() {
     setSavingAccount(true);
     setAccountMsg("");
     try {
-      // Update display name
-      await supabase.auth.updateUser({
-        data: { full_name: fullName },
-      });
-      // Update org name
+      await supabase.auth.updateUser({ data: { full_name: fullName } });
       if (orgId) {
-        await supabase
-          .from("organizations")
-          .update({ name: orgName })
-          .eq("id", orgId);
+        await supabase.from("organizations").update({ name: orgName }).eq("id", orgId);
       }
-      // Change password
       if (newPw) {
         const { error } = await supabase.auth.updateUser({ password: newPw });
-        if (error) { setAccountMsg("Password error: " + error.message); setSavingAccount(false); return; }
+        if (error) {
+          setAccountMsg("Password error: " + error.message);
+          setSavingAccount(false);
+          return;
+        }
         setCurrentPw(""); setNewPw("");
       }
       setAccountMsg("Saved successfully!");
+      showToast("success", "Account updated", "Your profile changes have been saved.");
     } catch {
       setAccountMsg("Something went wrong.");
+      showToast("error", "Save failed", "Something went wrong. Please try again.");
     }
     setSavingAccount(false);
   }
 
-  // ── Agents ────────────────────────────────────────────────────────────────
+  // ── Agents — invite via Supabase Edge Function ────────────────────────────
   async function inviteAgent() {
-    if (!inviteEmail || !orgId) return;
+    if (!inviteEmail.trim() || !orgId) return;
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(inviteEmail)) {
+      showToast("error", "Invalid email", "Please enter a valid email address.");
+      return;
+    }
+
     setInviting(true);
-    // Insert invite (extend with email sending via Resend)
-    await supabase.from("invites").insert({
-      organization_id: orgId,
-      email: inviteEmail,
-      invited_by: user.id,
-    });
-    setInviteEmail("");
-    setInviting(false);
+    setInviteSuccess(false);
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-agent`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({
+            email: inviteEmail.trim(),
+            organization_id: orgId,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error ?? "Failed to send invitation.");
+      }
+
+      setInviteSuccess(true);
+      setInviteEmail("");
+      showToast("success", "Invitation sent!", `An invite email has been sent to ${inviteEmail.trim()}.`);
+      setTimeout(() => setInviteSuccess(false), 3000);
+
+    } catch (err: any) {
+      showToast("error", "Invite failed", err.message ?? "Could not send the invitation. Please try again.");
+    } finally {
+      setInviting(false);
+    }
   }
 
   async function removeAgent(userId: string) {
@@ -239,6 +320,7 @@ export default function SettingsPage() {
       .eq("organization_id", orgId)
       .eq("user_id", userId);
     fetchAgents(orgId);
+    showToast("success", "Agent removed", "The agent has been removed from your organization.");
   }
 
   // ── Inboxes ───────────────────────────────────────────────────────────────
@@ -332,6 +414,9 @@ export default function SettingsPage() {
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <>
+      {/* Toast notification */}
+      <Toast toast={toast} onClose={() => setToast((t) => ({ ...t, show: false }))} />
+
       {/* Topbar */}
       <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-border/70 bg-background/85 px-6 backdrop-blur-xl">
         <div>
@@ -494,24 +579,53 @@ export default function SettingsPage() {
                 ))}
               </div>
 
+              {/* ── Invite agent section ── */}
               <div className="border-t border-border pt-5">
-                <h3 className="text-sm font-semibold text-foreground mb-3">Invite agent</h3>
+                <div className="flex items-center gap-2 mb-1">
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  <h3 className="text-sm font-semibold text-foreground">Invite agent</h3>
+                </div>
+                <p className="text-xs text-muted-foreground mb-3">
+                  They'll receive an email to create their account and join your organization.
+                </p>
+
                 <div className="flex gap-2">
                   <input
                     value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
+                    onChange={(e) => {
+                      setInviteEmail(e.target.value);
+                      setInviteSuccess(false);
+                    }}
+                    onKeyDown={(e) => e.key === "Enter" && inviteAgent()}
                     placeholder="agent@email.com"
-                    className="flex-1 rounded-lg border border-border bg-secondary px-3 py-2 text-sm outline-none focus:border-primary"
+                    disabled={inviting}
+                    className="flex-1 rounded-lg border border-border bg-secondary px-3 py-2 text-sm outline-none focus:border-primary disabled:opacity-60"
                   />
                   <button
                     onClick={inviteAgent}
-                    disabled={inviting || !inviteEmail}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-primary text-primary-foreground text-sm rounded-lg hover:opacity-90 disabled:opacity-50"
+                    disabled={inviting || !inviteEmail.trim()}
+                    className={`flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg font-medium transition-all disabled:opacity-50 ${
+                      inviteSuccess
+                        ? "bg-green-600 text-white"
+                        : "bg-primary text-primary-foreground hover:opacity-90"
+                    }`}
                   >
-                    {inviting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-                    Invite
+                    {inviting ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : inviteSuccess ? (
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                    ) : (
+                      <Plus className="h-3.5 w-3.5" />
+                    )}
+                    {inviteSuccess ? "Sent!" : "Invite"}
                   </button>
                 </div>
+
+                {/* Pending invite note */}
+                <p className="text-[11px] text-muted-foreground mt-2 flex items-center gap-1">
+                  <span className="opacity-60">ℹ</span>
+                  The invite link expires in 24 hours. The agent will appear here once they accept.
+                </p>
               </div>
             </div>
           )}
@@ -523,7 +637,6 @@ export default function SettingsPage() {
               <p className="text-xs text-muted-foreground mb-6">Connect your social media channels</p>
 
               {inboxes.length === 0 ? (
-                // Show default channel cards if none in DB yet
                 (["instagram", "facebook", "whatsapp"] as const).map((ch) => {
                   const meta = CHANNEL_META[ch];
                   return (
