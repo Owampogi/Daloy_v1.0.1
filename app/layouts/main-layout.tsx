@@ -10,11 +10,14 @@ import {
   Settings,
   LogOut,
   Loader2,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { Link, Outlet, useNavigate, useLocation } from "react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "~/services/supabase-client";
 import type { User } from "@supabase/supabase-js";
+import { useTheme } from "~/contexts/theme-context";
 
 type Plan = "starter" | "growth" | "business";
 
@@ -56,6 +59,8 @@ const NAV = [
 export default function MainLayout() {
   const navigate  = useNavigate();
   const location  = useLocation();
+  const { theme, toggleTheme } = useTheme();
+
   const [user, setUser]                       = useState<User | null>(null);
   const [loading, setLoading]                 = useState(true);
   const [seatCount, setSeatCount]             = useState(1);
@@ -117,7 +122,6 @@ export default function MainLayout() {
         .eq("organization_id", oid);
       setSeatCount(seats ?? 1);
 
-      // ← maybeSingle para hindi mag-error kung walang row
       const { data: aiUsage } = await supabase
         .from("ai_usage")
         .select("count")
@@ -164,19 +168,36 @@ export default function MainLayout() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] font-sans text-foreground antialiased">
+    <div className="flex min-h-screen bg-background font-sans text-foreground antialiased dark:bg-gray-950 dark:text-gray-100">
 
       {/* ── Sidebar ── */}
-      <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-background/95 lg:flex">
-        <div className="flex h-16 items-center gap-2 border-b border-border px-6">
-          <span className="text-lg font-bold tracking-tight">DALOY</span>
+      <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-background/95 dark:bg-gray-900/95 dark:border-gray-800 lg:flex">
+
+        {/* Sidebar header with logo + theme toggle */}
+        <div className="flex h-16 items-center justify-between border-b border-border dark:border-gray-800 px-6">
+          <span className="text-lg font-bold tracking-tight text-foreground dark:text-white">
+            DALOY
+          </span>
+
+          {/* Dark / Light toggle */}
+          <button
+            onClick={toggleTheme}
+            aria-label={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
+            className="relative inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary dark:hover:bg-gray-800 hover:text-foreground dark:text-gray-400 dark:hover:text-gray-100 transition-colors"
+          >
+            {theme === "light" ? (
+              <Moon className="h-4 w-4" />
+            ) : (
+              <Sun className="h-4 w-4" />
+            )}
+          </button>
         </div>
 
         <nav className="flex-1 space-y-0.5 px-3 py-4">
@@ -186,7 +207,7 @@ export default function MainLayout() {
             return locked ? (
               <div
                 key={item.label}
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium cursor-not-allowed text-muted-foreground/50"
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium cursor-not-allowed text-muted-foreground/50 dark:text-gray-600"
               >
                 <item.icon className="h-4 w-4 shrink-0" />
                 <span className="flex-1">{item.label}</span>
@@ -199,7 +220,7 @@ export default function MainLayout() {
                 className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                   isActive
                     ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    : "text-muted-foreground hover:bg-secondary hover:text-foreground dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100"
                 }`}
               >
                 <item.icon className="h-4 w-4 shrink-0" />
@@ -210,13 +231,13 @@ export default function MainLayout() {
         </nav>
 
         {/* ── Plan badge ── */}
-        <div className="m-3 rounded-xl border border-border bg-secondary/60 p-4">
+        <div className="m-3 rounded-xl border border-border dark:border-gray-800 bg-secondary/60 dark:bg-gray-800/60 p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground dark:text-gray-400">
                 {config.label} plan
               </p>
-              <p className="mt-0.5 text-xs text-muted-foreground">{config.price}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground dark:text-gray-500">{config.price}</p>
             </div>
             {isStarter && (
               <Link to="/pricing" className="btn-primary h-8 px-2.5 text-xs">
@@ -227,12 +248,12 @@ export default function MainLayout() {
 
           {/* Seats */}
           <div className="mt-3">
-            <div className="flex justify-between text-xs text-muted-foreground">
+            <div className="flex justify-between text-xs text-muted-foreground dark:text-gray-400">
               <span>Seats</span>
               <span>{seatCount} / {config.seats.total ?? "∞"}</span>
             </div>
             {config.seats.total && (
-              <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-border">
+              <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-border dark:bg-gray-700">
                 <div
                   className="h-full rounded-full bg-primary transition-all"
                   style={{ width: `${(seatCount / config.seats.total) * 100}%` }}
@@ -243,7 +264,7 @@ export default function MainLayout() {
 
           {/* AI replies */}
           <div className="mt-2">
-            <div className="flex justify-between text-xs text-muted-foreground">
+            <div className="flex justify-between text-xs text-muted-foreground dark:text-gray-400">
               <span>AI replies</span>
               <span>
                 {config.aiReplies.limit
@@ -252,7 +273,7 @@ export default function MainLayout() {
               </span>
             </div>
             {aiProgress !== null && (
-              <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-border">
+              <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-border dark:bg-gray-700">
                 <div
                   className="h-full rounded-full bg-accent transition-all"
                   style={{ width: `${aiProgress}%` }}
@@ -262,7 +283,7 @@ export default function MainLayout() {
           </div>
 
           {/* Channels */}
-          <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+          <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground dark:text-gray-400">
             <span>Channels</span>
             <span>{config.channels.label}</span>
           </div>
@@ -270,17 +291,19 @@ export default function MainLayout() {
           {/* Trial countdown */}
           {trialEndsAt && !isExpired && (
             <div className={`mt-3 rounded-lg px-3 py-2 text-xs ${
-              showWarning ? "bg-amber-50 border border-amber-200" : "bg-secondary"
+              showWarning
+                ? "bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800"
+                : "bg-secondary dark:bg-gray-700/50"
             }`}>
-              <p className={`font-medium ${showWarning ? "text-amber-700" : "text-muted-foreground"}`}>
+              <p className={`font-medium ${showWarning ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground dark:text-gray-400"}`}>
                 {showWarning ? "⚠️ Trial expiring soon" : "🕐 Free trial"}
               </p>
-              <p className={`mt-0.5 ${showWarning ? "text-amber-600" : "text-muted-foreground"}`}>
+              <p className={`mt-0.5 ${showWarning ? "text-amber-600 dark:text-amber-500" : "text-muted-foreground dark:text-gray-500"}`}>
                 {hoursLeft! <= 24
                   ? `${hoursLeft}h left`
                   : `${daysLeft} day${daysLeft !== 1 ? "s" : ""} left`}
               </p>
-              <p className={`mt-0.5 ${showWarning ? "text-amber-500" : "text-muted-foreground/70"}`}>
+              <p className={`mt-0.5 ${showWarning ? "text-amber-500 dark:text-amber-600" : "text-muted-foreground/70 dark:text-gray-600"}`}>
                 Ends {trialEndsAt.toLocaleDateString("en-PH", {
                   month: "short", day: "numeric", year: "numeric",
                 })} at {trialEndsAt.toLocaleTimeString("en-PH", {
@@ -292,14 +315,14 @@ export default function MainLayout() {
 
           {/* Expired */}
           {isExpired && (
-            <div className="mt-3 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs">
-              <p className="font-medium text-red-700">Trial expired</p>
-              <p className="text-red-500 mt-0.5">
+            <div className="mt-3 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 px-3 py-2 text-xs">
+              <p className="font-medium text-red-700 dark:text-red-400">Trial expired</p>
+              <p className="text-red-500 dark:text-red-500 mt-0.5">
                 Expired {trialEndsAt?.toLocaleDateString("en-PH", {
                   month: "short", day: "numeric", year: "numeric",
                 })}
               </p>
-              <Link to="/pricing" className="text-red-600 underline mt-1 block font-medium">
+              <Link to="/pricing" className="text-red-600 dark:text-red-400 underline mt-1 block font-medium">
                 Renew subscription →
               </Link>
             </div>
@@ -308,7 +331,7 @@ export default function MainLayout() {
           {/* Logout */}
           <button
             onClick={handleLogout}
-            className="mt-3 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+            className="mt-3 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-muted-foreground hover:bg-secondary dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-100 hover:text-foreground transition-colors"
           >
             <LogOut className="h-3.5 w-3.5" />
             Sign out
@@ -345,14 +368,14 @@ export default function MainLayout() {
       {/* ── Expired modal ── */}
       {showExpiredModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-background rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
+          <div className="bg-background dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
             <div className="bg-[linear-gradient(135deg,#041633_0%,#0B2857_55%,#1F6FE5_100%)] px-6 py-8 text-center">
               <div className="text-5xl mb-3">⏰</div>
               <h2 className="text-xl font-semibold text-white mb-1">Trial expired</h2>
               <p className="text-sm text-white/70">Nag-expire na ang iyong 2-day free trial.</p>
             </div>
             <div className="px-6 py-6">
-              <p className="text-sm text-muted-foreground text-center mb-5">
+              <p className="text-sm text-muted-foreground dark:text-gray-400 text-center mb-5">
                 I-renew ang iyong subscription para ma-access muli ang lahat ng features ng Daloy.
               </p>
               <div className="space-y-2">
@@ -365,7 +388,7 @@ export default function MainLayout() {
                 </Link>
                 <button
                   onClick={() => setShowExpiredModal(false)}
-                  className="w-full py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  className="w-full py-2 text-xs text-muted-foreground dark:text-gray-500 hover:text-foreground dark:hover:text-gray-300 transition-colors"
                 >
                   Continue with limited access
                 </button>
