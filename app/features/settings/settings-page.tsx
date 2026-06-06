@@ -169,28 +169,34 @@ export default function SettingsPage() {
   // ── Init ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!user) return;
-    async function init() {
-      const { data: memberData } = await supabase
-        .from("organization_members")
-        .select("organization_id, role")
-        .eq("user_id", user.id)
-        .single();
-      if (!memberData) return;
-      const oid = memberData.organization_id;
-      setOrgId(oid);
+      async function init() {
+        const { data: memberData, error } = await supabase
+          .from("organization_members")
+          .select("organization_id, role")
+          .eq("user_id", user.id)
+          .maybeSingle(); // ← change .single() to .maybeSingle()
 
-      const { data: org } = await supabase
-        .from("organizations")
-        .select("name")
-        .eq("id", oid)
-        .single();
-      setOrgName(org?.name ?? "");
+        if (!memberData) {
+          console.warn("No organization found for user:", user.id);
+          return;
+        }
 
-      fetchAgents(oid);
-      fetchInboxes(oid);
-      fetchLabels(oid);
-      fetchAutomations(oid);
-    }
+        const oid = memberData.organization_id;
+        setOrgId(oid);
+
+        const { data: org } = await supabase
+          .from("organizations")
+          .select("name")
+          .eq("id", oid)
+          .maybeSingle(); // ← also here
+
+        setOrgName(org?.name ?? "");
+
+        fetchAgents(oid);
+        fetchInboxes(oid);
+        fetchLabels(oid);
+        fetchAutomations(oid);
+      }
     init();
   }, [user]);
 
