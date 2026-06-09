@@ -10,7 +10,7 @@ const plans = [
     price: "₱1,499",
     period: "/month",
     desc: "For solo founders and small teams getting started.",
-    features: ["1 user seat", "Unified inbox (2 channels)", "AI replies — 500/mo", "Basic pipelines"],
+    features: ["1 user seat", "Unified inbox (2 channels)", "Unlimited AI replies", "Basic pipelines"],
     featured: false,
   },
   {
@@ -19,7 +19,7 @@ const plans = [
     price: "₱4,999",
     period: "/month",
     desc: "For growing SMEs ready to scale their lead flow.",
-    features: ["5 user seats", "All channels", "AI replies — 5,000/mo", "Smart pipelines & automations", "Appointment booking", "Priority support"],
+    features: ["5 user seats", "All channels", "Unlimited AI replies", "Smart pipelines & automations", "Appointment booking", "Priority support"],
     featured: true,
   },
   {
@@ -34,9 +34,9 @@ const plans = [
 ];
 
 const planConfig: Record<string, { max_seats: number; ai_quota: number }> = {
-  starter:  { max_seats: 1,    ai_quota: 500   },
-  growth:   { max_seats: 5,    ai_quota: 5000  },
-  business: { max_seats: 9999, ai_quota: 999999 },
+  starter:  { max_seats: 1,    ai_quota: 9999999 },
+  growth:   { max_seats: 5,    ai_quota: 9999999 },
+  business: { max_seats: 9999, ai_quota: 9999999 },
 };
 
 export function loader() {

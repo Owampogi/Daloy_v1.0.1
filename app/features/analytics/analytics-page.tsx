@@ -99,10 +99,10 @@ function groupByWeek(daily: number[]) {
 
 const PIPELINE_STAGES = ["New", "Qualified", "Follow-up", "Negotiation", "Won"];
 
-const PLAN_AI_LIMITS: Record<string, number> = {
-  starter: 500,
-  growth: 5000,
-  business: Infinity,
+const PLAN_AI_LIMITS: Record<string, number | null> = {
+  starter: null,
+  growth: null,
+  business: null,
 };
 
 // ─── Chart options ─────────────────────────────────────────────────────────────
@@ -134,7 +134,7 @@ export default function AnalyticsPage() {
   const [metrics, setMetrics] = useState<Metrics>({
     totalLeads: 0, totalLeadsPrev: 0,
     conversionRate: 0, conversionRatePrev: 0,
-    aiRepliesUsed: 0, aiLimit: 5000,
+      aiRepliesUsed: 0, aiLimit: Infinity,
     appointmentsBooked: 0, appointmentsPrev: 0,
     revenuePipeline: 0, revenuePrev: 0,
   });
@@ -234,7 +234,7 @@ export default function AnalyticsPage() {
       conversionRate: convRate,
       conversionRatePrev: convPrev,
       aiRepliesUsed: aiTotal,
-      aiLimit: PLAN_AI_LIMITS[plan] ?? 5000,
+      aiLimit: PLAN_AI_LIMITS[plan] ?? Infinity,
       appointmentsBooked: apptCount,
       appointmentsPrev: apptPrevCount,
       revenuePipeline: totalPipeline,

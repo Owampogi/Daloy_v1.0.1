@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { useOutletContext } from "react-router";
 import { supabase } from "~/services/supabase-client";
+import { getTenantSystemPrompt } from "~/services/tenant-ai-context";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 interface Message {
@@ -12,40 +13,17 @@ interface Message {
   content: string;
 }
 
-// ─── System prompt — Daloy SME ────────────────────────────────────────────────
-const SYSTEM_PROMPT = `You are Daloy AI, an expert business assistant built into the Daloy CRM platform. Daloy is a Filipino CRM tool designed for SMEs (small and medium enterprises) to manage leads, conversations, appointments, pipelines, and automations from social media channels like Facebook, Instagram, and TikTok.
+// ─── Default fallback system prompt (used if tenant config not loaded) ────────
+const DEFAULT_SYSTEM_PROMPT = `You are Daloy AI, an expert business assistant built into the Daloy CRM platform. Daloy is a Filipino CRM tool designed for SMEs (small and medium enterprises) to manage leads, conversations, appointments, pipelines, and automations from social media channels like Facebook, Instagram, and TikTok.
 
 Your role is to help users with:
 
-1. **Daloy CRM Usage (How-to)**
-   - How to add and manage leads
-   - How to use the Inbox (filter by channel, status, priority)
-   - How to book and manage appointments
-   - How to set up automations
-   - How to read analytics and pipeline data
-   - How to invite team members and configure settings
+1. **Daloy CRM Usage (How-to)** — How to add/manage leads, use Inbox, appointments, automations, analytics, team settings
+2. **Sales Coaching for Filipino SMEs** — Close deals, handle objections, follow-up strategies, Filipino/Taglish sales scripts
+3. **Lead Follow-up Templates** — Message templates for FB/IG/TikTok DMs, follow-up sequences, re-engagement, reminders
+4. **Business Growth Advice for SMEs** — Convert followers to leads, content ideas, efficient sales processes
 
-2. **Sales Coaching for Filipino SMEs**
-   - How to close deals effectively
-   - How to handle objections from prospects
-   - How to follow up without being pushy
-   - Sales scripts in Filipino/Taglish context
-   - Pricing strategies for local market
-
-3. **Lead Follow-up Templates**
-   - Message templates for Facebook, Instagram, TikTok DMs
-   - Follow-up sequences (day 1, day 3, day 7)
-   - Re-engagement messages for cold leads
-   - Appointment reminder messages
-   - Post-purchase follow-up messages
-
-4. **Business Growth Advice for SMEs**
-   - How to convert social media followers to leads
-   - Content ideas that generate inquiries
-   - How to set up efficient sales processes
-   - Team management tips for growing businesses
-
-Always respond in a helpful, friendly tone. You may respond in Filipino, Taglish, or English depending on how the user writes to you. Keep responses concise and actionable. When giving templates, format them clearly so users can copy and use them immediately.
+Always respond in a helpful, friendly tone. You may respond in Filipino, Taglish, or English depending on how the user writes to you. Keep responses concise and actionable.
 
 If asked about topics unrelated to Daloy or business/sales, politely redirect to your area of expertise.`;
 
@@ -104,6 +82,8 @@ export default function AssistantPage() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [orgId, setOrgId] = useState<string | null>(null);
+  const [aiName, setAiName] = useState("Daloy AI");
+  const [systemPrompt, setSystemPrompt] = useState(DEFAULT_SYSTEM_PROMPT);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -118,7 +98,25 @@ export default function AssistantPage() {
         .eq("user_id", user.id)
         .single();
       if (!memberData) return;
-      setOrgId(memberData.organization_id);
+      const oid = memberData.organization_id;
+      setOrgId(oid);
+
+      // Load tenant-specific AI system prompt
+      try {
+        const prompt = await getTenantSystemPrompt(oid);
+        setSystemPrompt(prompt);
+        // Extract AI name from tenant config for display
+        const { data: aiConfig } = await supabase
+          .from("tenant_ai_config")
+          .select("ai_name")
+          .eq("organization_id", oid)
+          .maybeSingle();
+        if (aiConfig?.ai_name) {
+          setAiName(aiConfig.ai_name);
+        }
+      } catch {
+        // Use defaults if tenant config fails to load
+      }
 
       // Load latest conversation
       const { data: conv } = await supabase
@@ -183,7 +181,7 @@ export default function AssistantPage() {
         body: JSON.stringify({
           model: "gpt-4o-mini",
           messages: [
-            { role: "system", content: SYSTEM_PROMPT },
+            { role: "system", content: systemPrompt },
             ...newMessages.map((m) => ({ role: m.role, content: m.content })),
           ],
           max_tokens: 1000,
@@ -229,7 +227,7 @@ export default function AssistantPage() {
           </div>
           <div>
             <p className="text-base font-semibold text-foreground">AI Assistant</p>
-            <p className="text-xs text-muted-foreground">Powered by Daloy AI · Sales & CRM Expert</p>
+            <p className="text-xs text-muted-foreground">Powered by {aiName} · Sales & CRM Expert</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -270,7 +268,7 @@ export default function AssistantPage() {
                   <Sparkles className="h-7 w-7 text-primary-foreground" />
                 </div>
                 <h1 className="text-xl font-semibold text-foreground mb-2">
-                  Kumusta! Ako si Daloy AI.
+                  Kumusta! Ako si {aiName}.
                 </h1>
                 <p className="text-sm text-muted-foreground max-w-md mx-auto">
                   Your sales coach, CRM guide, at message template generator. Tanungin mo ako tungkol sa Daloy, sales strategies, o mag-request ng follow-up templates.

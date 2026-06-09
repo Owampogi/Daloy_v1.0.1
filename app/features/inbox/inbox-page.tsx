@@ -233,17 +233,49 @@ export default function InboxPage() {
 
   async function sendReply() {
     if (!reply.trim() || !selected) return;
-    await supabase.from("messages").insert({
-      conversation_id: selected.id,
-      sender: "agent",
-      content: reply.trim(),
-    });
-    await supabase.from("conversations").update({
-      last_message: reply.trim(),
-      last_message_at: new Date().toISOString(),
-    }).eq("id", selected.id);
-    setReply("");
-    if (orgId) fetchConversations(orgId);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      // Use Edge Function to send message through the correct platform API
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-message`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({
+            conversation_id: selected.id,
+            content: reply.trim(),
+          }),
+        }
+      );
+
+      const result = await res.json();
+      if (!res.ok) {
+        console.error("Send failed:", result.error);
+        // Fallback: save directly to DB if Edge Function fails (e.g. during dev)
+        await supabase.from("messages").insert({
+          conversation_id: selected.id,
+          sender: "agent",
+          content: reply.trim(),
+        });
+      }
+
+      await supabase.from("conversations").update({
+        last_message: reply.trim(),
+        last_message_at: new Date().toISOString(),
+      }).eq("id", selected.id);
+
+      setReply("");
+      if (orgId) fetchConversations(orgId);
+    } catch (err) {
+      console.error("Error sending reply:", err);
+    }
   }
 
   // Sort conversations

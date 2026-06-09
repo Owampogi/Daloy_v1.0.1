@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import {
-  Bell, UserCircle, Users, Inbox, Tag, Zap,
+  Bell, UserCircle, Users, Inbox, Tag, Zap, Sparkles,
   Plus, Pencil, Trash2, X, Check, Loader2, Mail, CheckCircle2,
 } from "lucide-react";
+import AIPage from "./ai-page";
 import { useOutletContext } from "react-router";
 import { supabase } from "~/services/supabase-client";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
-type SettingsTab = "account" | "agents" | "inboxes" | "labels" | "automations";
+type SettingsTab = "account" | "agents" | "inboxes" | "labels" | "automations" | "ai";
 
 interface Agent {
   user_id: string;
@@ -45,6 +46,7 @@ const NAV: { key: SettingsTab; label: string; icon: any }[] = [
   { key: "inboxes",     label: "Inboxes",     icon: Inbox },
   { key: "labels",      label: "Labels",      icon: Tag },
   { key: "automations", label: "Automations", icon: Zap },
+  { key: "ai",          label: "AI Assistant", icon: Sparkles },
 ];
 
 const LABEL_COLORS = [
@@ -65,10 +67,105 @@ const LABEL_BG: Record<string, string> = {
   "#444441": "bg-gray-100 text-gray-700",
 };
 
-const CHANNEL_META = {
-  instagram: { label: "Instagram", icon: "📸", bg: "bg-pink-50" },
-  facebook:  { label: "Facebook",  icon: "📘", bg: "bg-blue-50" },
-  whatsapp:  { label: "WhatsApp",  icon: "💬", bg: "bg-green-50" },
+const CHANNEL_META: Record<string, { label: string; icon: React.ReactNode; bg: string }> = {
+  instagram: {
+    label: "Instagram",
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-5 w-5">
+        <defs>
+          <radialGradient id="igGrad" cx="30%" cy="107%" r="150%">
+            <stop offset="0%" stopColor="#fdf497" />
+            <stop offset="5%" stopColor="#fdf497" />
+            <stop offset="45%" stopColor="#fd5949" />
+            <stop offset="60%" stopColor="#d6249f" />
+            <stop offset="90%" stopColor="#285AEB" />
+          </radialGradient>
+        </defs>
+        <rect x="1" y="1" width="22" height="22" rx="6" fill="url(#igGrad)" />
+        <circle cx="12" cy="12" r="5" fill="none" stroke="#fff" strokeWidth="1.8" />
+        <circle cx="17.5" cy="6.5" r="1.4" fill="#fff" />
+      </svg>
+    ),
+    bg: "bg-pink-50",
+  },
+  facebook: {
+    label: "Facebook",
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-5 w-5">
+        <path
+          d="M24 12c0-6.627-5.373-12-12-12S0 5.373 0 12c0 5.99 4.388 10.954 10.125 11.854V15.47H7.078V12h3.047V9.356c0-3.007 1.791-4.668 4.533-4.668 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.875V12h3.328l-.532 3.47h-2.796v8.384C19.612 22.954 24 17.99 24 12z"
+          fill="#1877F2"
+        />
+        <path
+          d="M16.671 15.47L17.203 12h-3.328V9.75c0-.95.465-1.875 1.956-1.875h1.514V4.923s-1.374-.235-2.686-.235c-2.742 0-4.533 1.66-4.533 4.668V12H7.078v3.47h3.047v8.384a12.09 12.09 0 003.75 0V15.47h2.796z"
+          fill="#fff"
+        />
+      </svg>
+    ),
+    bg: "bg-blue-50",
+  },
+  whatsapp: {
+    label: "WhatsApp",
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-5 w-5">
+        <path
+          d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"
+          fill="#25D366"
+        />
+        <path
+          d="M12.05 2C6.532 2 2.005 6.527 2.005 12.045c0 1.768.463 3.48 1.34 4.997L2 22l5.14-1.335a9.987 9.987 0 004.91 1.28h.005c5.517 0 10.044-4.527 10.044-10.045C22.1 6.527 17.573 2 12.05 2zm0 18.348a8.33 8.33 0 01-4.237-1.16l-.304-.18-3.05.793.815-2.97-.198-.306a8.32 8.32 0 01-1.278-4.437c0-4.603 3.743-8.345 8.35-8.345 4.607 0 8.35 3.742 8.35 8.345 0 4.604-3.743 8.256-8.35 8.256v.101z"
+          fill="#fff"
+        />
+      </svg>
+    ),
+    bg: "bg-green-50",
+  },
+  email: {
+    label: "Customer Email",
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-5 w-5">
+        <path d="M1 5.828v12.344h22V5.828L12 13.5 1 5.828z" fill="#F4B400" />
+        <path d="M1 5.828l11 7.672 11-7.672" fill="#EA4335" />
+        <path d="M1 18.172V5.828L12 13.5z" fill="#F4B400" />
+        <path d="M23 5.828v12.344L12 13.5z" fill="#DB4437" />
+        <path d="M1 5.828l11 7.672L23 5.828 12 13.5z" fill="#4285F4" />
+      </svg>
+    ),
+    bg: "bg-amber-50",
+  },
+  tiktok: {
+    label: "TikTok",
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-5 w-5">
+        <path
+          d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"
+          fill="#000"
+        />
+        <path
+          d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"
+          fill="#25F4EE"
+        />
+        <path
+          d="M16.43 2.39c-.89-.52-1.57-1.3-1.9-2.27-.07-.23-.11-.47-.14-.71v-.41c.02-.01.06-.02.08-.02.44-.02.88-.01 1.32-.01.03.11.06.22.09.33.41 1.3 1.44 2.31 2.74 2.7.06.02.12.03.18.05v4.11c-1.33-.04-2.65-.33-3.82-.91-.02-.01-.04-.02-.06-.03v-2.88c.01-.01.03-.02.04-.02.47-.22.93-.48 1.36-.8.19-.14.37-.3.54-.46l-.23.01z"
+          fill="#FE2C55"
+        />
+      </svg>
+    ),
+    bg: "bg-slate-50",
+  },
+  website: {
+    label: "Website",
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-5 w-5">
+        <circle cx="12" cy="12" r="10" fill="none" stroke="#6D28D9" strokeWidth="2" />
+        <ellipse cx="12" cy="12" rx="4" ry="10" fill="none" stroke="#6D28D9" strokeWidth="1.5" />
+        <line x1="2" y1="12" x2="22" y2="12" stroke="#6D28D9" strokeWidth="1.5" />
+        <path d="M4.5 7h15" stroke="#6D28D9" strokeWidth="1" fill="none" />
+        <path d="M4.5 17h15" stroke="#6D28D9" strokeWidth="1" fill="none" />
+      </svg>
+    ),
+    bg: "bg-violet-50",
+  },
 };
 
 const AVATAR_COLORS = [
@@ -139,6 +236,9 @@ export default function SettingsPage() {
   // Account
   const [fullName, setFullName] = useState(displayName ?? "");
   const [orgName, setOrgName] = useState("");
+  const [orgEmail, setOrgEmail] = useState("");
+  const [orgTiktok, setOrgTiktok] = useState("");
+  const [orgWebsite, setOrgWebsite] = useState("");
   const [currentPw, setCurrentPw] = useState("");
   const [newPw, setNewPw] = useState("");
   const [savingAccount, setSavingAccount] = useState(false);
@@ -152,6 +252,9 @@ export default function SettingsPage() {
 
   // Inboxes
   const [inboxes, setInboxes] = useState<InboxChannel[]>([]);
+  const [connectModal, setConnectModal] = useState<string | null>(null);
+  const [connectValue, setConnectValue] = useState("");
+  const [savingConnect, setSavingConnect] = useState(false);
 
   // Labels
   const [labels, setLabels] = useState<Label[]>([]);
@@ -186,11 +289,14 @@ export default function SettingsPage() {
 
         const { data: org } = await supabase
           .from("organizations")
-          .select("name")
+          .select("name, email, tiktok, website")
           .eq("id", oid)
           .maybeSingle(); // ← also here
 
         setOrgName(org?.name ?? "");
+        setOrgEmail(org?.email ?? "");
+        setOrgTiktok(org?.tiktok ?? "");
+        setOrgWebsite(org?.website ?? "");
 
         fetchAgents(oid);
         fetchInboxes(oid);
@@ -330,6 +436,46 @@ export default function SettingsPage() {
   }
 
   // ── Inboxes ───────────────────────────────────────────────────────────────
+  function openConnectModal(channel: string) {
+    const currentValue =
+      channel === "email" ? orgEmail :
+      channel === "tiktok" ? orgTiktok :
+      channel === "website" ? orgWebsite : "";
+    setConnectModal(channel);
+    setConnectValue(currentValue);
+  }
+
+  async function saveConnect() {
+    if (!orgId || !connectModal) return;
+    setSavingConnect(true);
+    const field = connectModal === "email" ? "email" : connectModal === "tiktok" ? "tiktok" : "website";
+    await supabase.from("organizations").update({ [field]: connectValue || null }).eq("id", orgId);
+    if (field === "email") setOrgEmail(connectValue);
+    if (field === "tiktok") setOrgTiktok(connectValue);
+    if (field === "website") setOrgWebsite(connectValue);
+    setSavingConnect(false);
+    setConnectModal(null);
+    showToast("success", `${CHANNEL_META[connectModal]?.label} connected`, "Your contact info has been saved.");
+  }
+
+  function disconnectChannel(channel: string) {
+    if (!orgId) return;
+    const field = channel === "email" ? "email" : channel === "tiktok" ? "tiktok" : "website";
+    supabase.from("organizations").update({ [field]: null }).eq("id", orgId);
+    if (field === "email") setOrgEmail("");
+    if (field === "tiktok") setOrgTiktok("");
+    if (field === "website") setOrgWebsite("");
+    showToast("success", `${CHANNEL_META[channel]?.label} disconnected`, "The channel has been disconnected.");
+  }
+
+  function isChannelConnected(channel: string) {
+    return channel === "email" ? !!orgEmail : channel === "tiktok" ? !!orgTiktok : channel === "website" ? !!orgWebsite : false;
+  }
+
+  function getChannelHandle(channel: string) {
+    return channel === "email" ? orgEmail : channel === "tiktok" ? orgTiktok : channel === "website" ? orgWebsite : "";
+  }
+
   async function toggleInbox(inbox: InboxChannel) {
     await supabase
       .from("inboxes")
@@ -680,6 +826,49 @@ export default function SettingsPage() {
                   );
                 })
               )}
+
+              {/* Additional Channels */}
+              <div className="border-t border-border pt-6 mt-6">
+                <h3 className="text-sm font-semibold text-foreground mb-1">Additional channels</h3>
+                <p className="text-xs text-muted-foreground mb-4">Connect your email, TikTok, or website</p>
+
+                {(["email", "tiktok", "website"] as const).map((ch) => {
+                  const meta = CHANNEL_META[ch];
+                  const connected = isChannelConnected(ch);
+                  const handle = getChannelHandle(ch);
+                  return (
+                    <div key={ch} className="flex items-center gap-4 rounded-xl border border-border bg-background px-4 py-3 mb-3">
+                      <div className={`h-10 w-10 rounded-xl flex items-center justify-center text-xl ${meta.bg}`}>
+                        {meta.icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground">{meta.label}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {handle ? `${handle} · ` : ""}
+                          {connected ? "Connected" : "Not connected"}
+                        </p>
+                      </div>
+                      {connected ? (
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => disconnectChannel(ch)}
+                            className="px-3 py-1.5 text-xs border border-border rounded-lg text-muted-foreground hover:bg-red-50 hover:text-red-600 transition-colors"
+                          >
+                            Disconnect
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => openConnectModal(ch)}
+                          className="px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
+                        >
+                          Connect
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 
@@ -738,6 +927,9 @@ export default function SettingsPage() {
               </div>
             </div>
           )}
+
+          {/* ── AI ASSISTANT ── */}
+          {tab === "ai" && <AIPage />}
 
           {/* ── AUTOMATIONS ── */}
           {tab === "automations" && (
@@ -805,6 +997,52 @@ export default function SettingsPage() {
           )}
         </div>
       </div>
+
+      {/* ── Connect Channel Modal ── */}
+      {connectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-background rounded-2xl shadow-xl w-full max-w-md mx-4">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">{CHANNEL_META[connectModal]?.icon}</span>
+                <p className="text-sm font-semibold">Connect {CHANNEL_META[connectModal]?.label}</p>
+              </div>
+              <button onClick={() => setConnectModal(null)} className="h-7 w-7 flex items-center justify-center rounded-lg hover:bg-secondary transition-colors">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="px-6 py-4">
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                {connectModal === "email" ? "Email address" : connectModal === "tiktok" ? "TikTok username or URL" : "Website URL"}
+              </label>
+              <input
+                value={connectValue}
+                onChange={(e) => setConnectValue(e.target.value)}
+                placeholder={
+                  connectModal === "email" ? "customer@example.com" : connectModal === "tiktok" ? "@yourtiktok" : "https://yourbusiness.com"
+                }
+                type={connectModal === "email" ? "email" : connectModal === "website" ? "url" : "text"}
+                autoFocus
+                onKeyDown={(e) => e.key === "Enter" && saveConnect()}
+                className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm outline-none focus:border-primary"
+              />
+            </div>
+            <div className="px-6 py-4 border-t border-border flex justify-end gap-2">
+              <button onClick={() => setConnectModal(null)} className="px-4 py-2 text-sm border border-border rounded-lg hover:bg-secondary transition-colors">
+                Cancel
+              </button>
+              <button
+                onClick={saveConnect}
+                disabled={savingConnect || !connectValue.trim()}
+                className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-50 flex items-center gap-2"
+              >
+                {savingConnect ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                Connect
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Automation Modal ── */}
       {showAutoModal && (

@@ -39,12 +39,21 @@ interface DashboardMetrics {
   recentLeads: Lead[];
 }
 
-const PLAN_CONFIG = {
+const PLAN_CONFIG: Record<Plan, {
+  label: string;
+  price: string;
+  seats: { total: number | null };
+  aiReplies: { limit: number | null; label: string };
+  channels: { label: string };
+  analyticsLocked: boolean;
+  automationsLocked: boolean;
+  auditLogs: boolean;
+}> = {
   starter: {
     label: "Starter",
     price: "₱1,499/mo",
     seats: { total: 1 },
-    aiReplies: { limit: 500, label: "500/mo" },
+    aiReplies: { limit: null, label: "Unlimited" },
     channels: { label: "2 channels" },
     analyticsLocked: true,
     automationsLocked: true,
@@ -54,7 +63,7 @@ const PLAN_CONFIG = {
     label: "Growth",
     price: "₱4,999/mo",
     seats: { total: 5 },
-    aiReplies: { limit: 5000, label: "5,000/mo" },
+    aiReplies: { limit: null, label: "Unlimited" },
     channels: { label: "All channels" },
     analyticsLocked: false,
     automationsLocked: false,

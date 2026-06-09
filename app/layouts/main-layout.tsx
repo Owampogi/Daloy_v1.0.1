@@ -21,19 +21,25 @@ import { useTheme } from "~/contexts/theme-context";
 
 type Plan = "starter" | "growth" | "business";
 
-const PLAN_CONFIG = {
+const PLAN_CONFIG: Record<Plan, {
+  label: string;
+  price: string;
+  seats: { total: number | null };
+  aiReplies: { limit: number | null };
+  channels: { label: string };
+}> = {
   starter: {
     label: "Starter",
     price: "₱1,499/mo",
     seats: { total: 1 },
-    aiReplies: { limit: 500 },
+    aiReplies: { limit: null },
     channels: { label: "2 channels" },
   },
   growth: {
     label: "Growth",
     price: "₱4,999/mo",
     seats: { total: 5 },
-    aiReplies: { limit: 5000 },
+    aiReplies: { limit: null },
     channels: { label: "All channels" },
   },
   business: {
